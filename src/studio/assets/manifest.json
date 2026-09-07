@@ -1,0 +1,1728 @@
+{
+  "floor_lobby": {
+    "key": "floor_lobby",
+    "path": "assets/studio/environment/floors/floor_lobby.svg",
+    "category": "environment/floors",
+    "width": 32,
+    "height": 32,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": null,
+    "depthOffset": 0,
+    "interactionOffset": {
+      "x": 0,
+      "y": 34
+    }
+  },
+  "floor_programming": {
+    "key": "floor_programming",
+    "path": "assets/studio/environment/floors/floor_programming.svg",
+    "category": "environment/floors",
+    "width": 32,
+    "height": 32,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": null,
+    "depthOffset": 0,
+    "interactionOffset": {
+      "x": 0,
+      "y": 34
+    }
+  },
+  "floor_art": {
+    "key": "floor_programming",
+    "path": "assets/studio/environment/floors/floor_programming.svg",
+    "category": "environment/floors",
+    "width": 32,
+    "height": 32,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": null,
+    "depthOffset": 0,
+    "interactionOffset": {
+      "x": 0,
+      "y": 34
+    }
+  },
+  "floor_design": {
+    "key": "floor_programming",
+    "path": "assets/studio/environment/floors/floor_programming.svg",
+    "category": "environment/floors",
+    "width": 32,
+    "height": 32,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": null,
+    "depthOffset": 0,
+    "interactionOffset": {
+      "x": 0,
+      "y": 34
+    }
+  },
+  "floor_meeting": {
+    "key": "floor_meeting",
+    "path": "assets/studio/environment/floors/floor_meeting.svg",
+    "category": "environment/floors",
+    "width": 32,
+    "height": 32,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": null,
+    "depthOffset": 0,
+    "interactionOffset": {
+      "x": 0,
+      "y": 34
+    }
+  },
+  "floor_lounge": {
+    "key": "floor_meeting",
+    "path": "assets/studio/environment/floors/floor_meeting.svg",
+    "category": "environment/floors",
+    "width": 32,
+    "height": 32,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": null,
+    "depthOffset": 0,
+    "interactionOffset": {
+      "x": 0,
+      "y": 34
+    }
+  },
+  "floor_audio": {
+    "key": "floor_programming",
+    "path": "assets/studio/environment/floors/floor_programming.svg",
+    "category": "environment/floors",
+    "width": 32,
+    "height": 32,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": null,
+    "depthOffset": 0,
+    "interactionOffset": {
+      "x": 0,
+      "y": 34
+    }
+  },
+  "floor_corridor": {
+    "key": "floor_lobby",
+    "path": "assets/studio/environment/floors/floor_lobby.svg",
+    "category": "environment/floors",
+    "width": 32,
+    "height": 32,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": null,
+    "depthOffset": 0,
+    "interactionOffset": {
+      "x": 0,
+      "y": 34
+    }
+  },
+  "wall_block": {
+    "key": "wall_block",
+    "path": "assets/studio/environment/walls/wall_block.svg",
+    "category": "environment/walls",
+    "width": 32,
+    "height": 32,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 0,
+      "y": 0,
+      "width": 32,
+      "height": 32
+    },
+    "depthOffset": 16,
+    "interactionOffset": {
+      "x": 0,
+      "y": 34
+    }
+  },
+  "obj_project_board": {
+    "key": "obj_project_board",
+    "path": "assets/studio/signage/obj_project_board.svg",
+    "category": "signage",
+    "width": 64,
+    "height": 44,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 4,
+      "y": 32,
+      "width": 56,
+      "height": 9
+    },
+    "depthOffset": 19,
+    "interactionOffset": {
+      "x": 0,
+      "y": 40
+    }
+  },
+  "obj_reception_desk": {
+    "key": "obj_reception_desk",
+    "path": "assets/studio/furniture/desk/obj_reception_desk.svg",
+    "category": "furniture/desk",
+    "width": 64,
+    "height": 36,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 2,
+      "y": 12,
+      "width": 60,
+      "height": 21
+    },
+    "depthOffset": 15,
+    "interactionOffset": {
+      "x": 0,
+      "y": 36
+    }
+  },
+  "obj_desk_monitor": {
+    "key": "obj_desk_monitor",
+    "path": "assets/studio/furniture/desk/obj_desk_monitor.svg",
+    "category": "furniture/desk",
+    "width": 64,
+    "height": 42,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 2,
+      "y": 12,
+      "width": 60,
+      "height": 27
+    },
+    "depthOffset": 18,
+    "interactionOffset": {
+      "x": 0,
+      "y": 39
+    }
+  },
+  "obj_desk_assigned_offline": {
+    "key": "obj_desk_assigned_offline",
+    "path": "assets/studio/furniture/desk/obj_desk_assigned_offline.svg",
+    "category": "furniture/desk",
+    "width": 64,
+    "height": 42,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 2,
+      "y": 12,
+      "width": 60,
+      "height": 27
+    },
+    "depthOffset": 18,
+    "interactionOffset": {
+      "x": 0,
+      "y": 39
+    }
+  },
+  "obj_desk_available": {
+    "key": "obj_desk_available",
+    "path": "assets/studio/furniture/desk/obj_desk_available.svg",
+    "category": "furniture/desk",
+    "width": 64,
+    "height": 42,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 2,
+      "y": 12,
+      "width": 60,
+      "height": 27
+    },
+    "depthOffset": 18,
+    "interactionOffset": {
+      "x": 0,
+      "y": 39
+    }
+  },
+  "obj_chair": {
+    "key": "obj_chair",
+    "path": "assets/studio/furniture/chair/obj_chair.svg",
+    "category": "furniture/chair",
+    "width": 24,
+    "height": 24,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": null,
+    "depthOffset": 0,
+    "interactionOffset": {
+      "x": 0,
+      "y": 30
+    }
+  },
+  "obj_code_whiteboard": {
+    "key": "obj_code_whiteboard",
+    "path": "assets/studio/signage/obj_code_whiteboard.svg",
+    "category": "signage",
+    "width": 64,
+    "height": 40,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 4,
+      "y": 28,
+      "width": 56,
+      "height": 9
+    },
+    "depthOffset": 17,
+    "interactionOffset": {
+      "x": 0,
+      "y": 38
+    }
+  },
+  "obj_water_cooler": {
+    "key": "obj_water_cooler",
+    "path": "assets/studio/furniture/water/obj_water_cooler.svg",
+    "category": "furniture/water",
+    "width": 24,
+    "height": 36,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 2,
+      "y": 10,
+      "width": 20,
+      "height": 22
+    },
+    "depthOffset": 14,
+    "interactionOffset": {
+      "x": 0,
+      "y": 36
+    }
+  },
+  "obj_server_rack": {
+    "key": "obj_server_rack",
+    "path": "assets/studio/technology/server/obj_server_rack.svg",
+    "category": "technology/server",
+    "width": 36,
+    "height": 52,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 2,
+      "y": 15,
+      "width": 32,
+      "height": 33
+    },
+    "depthOffset": 22,
+    "interactionOffset": {
+      "x": 0,
+      "y": 44
+    }
+  },
+  "obj_art_easel": {
+    "key": "obj_art_easel",
+    "path": "assets/studio/decorations/obj_art_easel.svg",
+    "category": "decorations",
+    "width": 48,
+    "height": 48,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 4,
+      "y": 36,
+      "width": 40,
+      "height": 9
+    },
+    "depthOffset": 21,
+    "interactionOffset": {
+      "x": 0,
+      "y": 42
+    }
+  },
+  "obj_design_board": {
+    "key": "obj_design_board",
+    "path": "assets/studio/signage/obj_design_board.svg",
+    "category": "signage",
+    "width": 60,
+    "height": 40,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 4,
+      "y": 28,
+      "width": 52,
+      "height": 9
+    },
+    "depthOffset": 17,
+    "interactionOffset": {
+      "x": 0,
+      "y": 38
+    }
+  },
+  "obj_arcade_cabinet": {
+    "key": "obj_arcade_cabinet",
+    "path": "assets/studio/furniture/arcade/obj_arcade_cabinet.svg",
+    "category": "furniture/arcade",
+    "width": 36,
+    "height": 48,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 2,
+      "y": 14,
+      "width": 32,
+      "height": 30
+    },
+    "depthOffset": 20,
+    "interactionOffset": {
+      "x": 0,
+      "y": 42
+    }
+  },
+  "obj_meeting_table": {
+    "key": "obj_meeting_table",
+    "path": "assets/studio/furniture/table/obj_meeting_table.svg",
+    "category": "furniture/table",
+    "width": 100,
+    "height": 56,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 2,
+      "y": 16,
+      "width": 96,
+      "height": 36
+    },
+    "depthOffset": 24,
+    "interactionOffset": {
+      "x": 0,
+      "y": 46
+    }
+  },
+  "obj_projector_screen": {
+    "key": "obj_projector_screen",
+    "path": "assets/studio/signage/obj_projector_screen.svg",
+    "category": "signage",
+    "width": 80,
+    "height": 40,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 4,
+      "y": 28,
+      "width": 72,
+      "height": 9
+    },
+    "depthOffset": 17,
+    "interactionOffset": {
+      "x": 0,
+      "y": 38
+    }
+  },
+  "obj_coffee_station": {
+    "key": "obj_coffee_station",
+    "path": "assets/studio/furniture/coffee/obj_coffee_station.svg",
+    "category": "furniture/coffee",
+    "width": 36,
+    "height": 40,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 2,
+      "y": 12,
+      "width": 32,
+      "height": 25
+    },
+    "depthOffset": 17,
+    "interactionOffset": {
+      "x": 0,
+      "y": 38
+    }
+  },
+  "obj_lounge_sofa": {
+    "key": "obj_lounge_sofa",
+    "path": "assets/studio/furniture/sofa/obj_lounge_sofa.svg",
+    "category": "furniture/sofa",
+    "width": 60,
+    "height": 32,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 2,
+      "y": 9,
+      "width": 56,
+      "height": 19
+    },
+    "depthOffset": 12,
+    "interactionOffset": {
+      "x": 0,
+      "y": 34
+    }
+  },
+  "obj_plant": {
+    "key": "obj_plant",
+    "path": "assets/studio/decorations/obj_plant.svg",
+    "category": "decorations",
+    "width": 24,
+    "height": 28,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 7,
+      "y": 16,
+      "width": 10,
+      "height": 10
+    },
+    "depthOffset": 12,
+    "interactionOffset": {
+      "x": 0,
+      "y": 32
+    }
+  },
+  "obj_art_desk_active": {
+    "key": "obj_art_desk_active",
+    "path": "assets/studio/furniture/desk/obj_art_desk_active.svg",
+    "category": "furniture/desk",
+    "width": 64,
+    "height": 42,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 2,
+      "y": 12,
+      "width": 60,
+      "height": 27
+    },
+    "depthOffset": 18,
+    "interactionOffset": {
+      "x": 0,
+      "y": 39
+    }
+  },
+  "obj_art_desk_offline": {
+    "key": "obj_art_desk_offline",
+    "path": "assets/studio/furniture/desk/obj_art_desk_offline.svg",
+    "category": "furniture/desk",
+    "width": 64,
+    "height": 42,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 2,
+      "y": 12,
+      "width": 60,
+      "height": 27
+    },
+    "depthOffset": 18,
+    "interactionOffset": {
+      "x": 0,
+      "y": 39
+    }
+  },
+  "obj_art_desk_available": {
+    "key": "obj_art_desk_available",
+    "path": "assets/studio/furniture/desk/obj_art_desk_available.svg",
+    "category": "furniture/desk",
+    "width": 64,
+    "height": 42,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 2,
+      "y": 12,
+      "width": 60,
+      "height": 27
+    },
+    "depthOffset": 18,
+    "interactionOffset": {
+      "x": 0,
+      "y": 39
+    }
+  },
+  "obj_moodboard_wall": {
+    "key": "obj_moodboard_wall",
+    "path": "assets/studio/signage/obj_moodboard_wall.svg",
+    "category": "signage",
+    "width": 72,
+    "height": 44,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 4,
+      "y": 32,
+      "width": 64,
+      "height": 9
+    },
+    "depthOffset": 19,
+    "interactionOffset": {
+      "x": 0,
+      "y": 40
+    }
+  },
+  "obj_art_review_board": {
+    "key": "obj_moodboard_wall",
+    "path": "assets/studio/signage/obj_moodboard_wall.svg",
+    "category": "signage",
+    "width": 72,
+    "height": 44,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 4,
+      "y": 32,
+      "width": 64,
+      "height": 9
+    },
+    "depthOffset": 19,
+    "interactionOffset": {
+      "x": 0,
+      "y": 40
+    }
+  },
+  "obj_art_director_desk": {
+    "key": "obj_art_director_desk",
+    "path": "assets/studio/furniture/desk/obj_art_director_desk.svg",
+    "category": "furniture/desk",
+    "width": 76,
+    "height": 46,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 2,
+      "y": 12,
+      "width": 72,
+      "height": 31
+    },
+    "depthOffset": 20,
+    "interactionOffset": {
+      "x": 0,
+      "y": 41
+    }
+  },
+  "obj_review_bench": {
+    "key": "obj_review_bench",
+    "path": "assets/studio/furniture/sofa/obj_review_bench.svg",
+    "category": "furniture/sofa",
+    "width": 56,
+    "height": 28,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 2,
+      "y": 8,
+      "width": 52,
+      "height": 16
+    },
+    "depthOffset": 10,
+    "interactionOffset": {
+      "x": 0,
+      "y": 32
+    }
+  },
+  "obj_design_desk_active": {
+    "key": "obj_design_desk_active",
+    "path": "assets/studio/furniture/desk/obj_design_desk_active.svg",
+    "category": "furniture/desk",
+    "width": 64,
+    "height": 42,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 2,
+      "y": 12,
+      "width": 60,
+      "height": 27
+    },
+    "depthOffset": 18,
+    "interactionOffset": {
+      "x": 0,
+      "y": 39
+    }
+  },
+  "obj_design_desk_offline": {
+    "key": "obj_desk_assigned_offline",
+    "path": "assets/studio/furniture/desk/obj_desk_assigned_offline.svg",
+    "category": "furniture/desk",
+    "width": 64,
+    "height": 42,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 2,
+      "y": 12,
+      "width": 60,
+      "height": 27
+    },
+    "depthOffset": 18,
+    "interactionOffset": {
+      "x": 0,
+      "y": 39
+    }
+  },
+  "obj_design_desk_available": {
+    "key": "obj_design_desk_available",
+    "path": "assets/studio/furniture/desk/obj_design_desk_available.svg",
+    "category": "furniture/desk",
+    "width": 64,
+    "height": 42,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 2,
+      "y": 12,
+      "width": 60,
+      "height": 27
+    },
+    "depthOffset": 18,
+    "interactionOffset": {
+      "x": 0,
+      "y": 39
+    }
+  },
+  "obj_mechanic_board": {
+    "key": "obj_mechanic_board",
+    "path": "assets/studio/signage/obj_mechanic_board.svg",
+    "category": "signage",
+    "width": 72,
+    "height": 44,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 4,
+      "y": 32,
+      "width": 64,
+      "height": 9
+    },
+    "depthOffset": 19,
+    "interactionOffset": {
+      "x": 0,
+      "y": 40
+    }
+  },
+  "obj_flow_board": {
+    "key": "obj_mechanic_board",
+    "path": "assets/studio/signage/obj_mechanic_board.svg",
+    "category": "signage",
+    "width": 72,
+    "height": 44,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 4,
+      "y": 32,
+      "width": 64,
+      "height": 9
+    },
+    "depthOffset": 19,
+    "interactionOffset": {
+      "x": 0,
+      "y": 40
+    }
+  },
+  "obj_balancing_board": {
+    "key": "obj_balancing_board",
+    "path": "assets/studio/signage/obj_balancing_board.svg",
+    "category": "signage",
+    "width": 72,
+    "height": 44,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 4,
+      "y": 32,
+      "width": 64,
+      "height": 9
+    },
+    "depthOffset": 19,
+    "interactionOffset": {
+      "x": 0,
+      "y": 40
+    }
+  },
+  "obj_lead_designer_desk": {
+    "key": "obj_lead_designer_desk",
+    "path": "assets/studio/furniture/desk/obj_lead_designer_desk.svg",
+    "category": "furniture/desk",
+    "width": 76,
+    "height": 46,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 2,
+      "y": 12,
+      "width": 72,
+      "height": 31
+    },
+    "depthOffset": 20,
+    "interactionOffset": {
+      "x": 0,
+      "y": 41
+    }
+  },
+  "obj_design_discussion_table": {
+    "key": "obj_design_discussion_table",
+    "path": "assets/studio/furniture/table/obj_design_discussion_table.svg",
+    "category": "furniture/table",
+    "width": 64,
+    "height": 36,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 2,
+      "y": 10,
+      "width": 60,
+      "height": 22
+    },
+    "depthOffset": 14,
+    "interactionOffset": {
+      "x": 0,
+      "y": 36
+    }
+  },
+  "obj_audio_direction_board": {
+    "key": "obj_audio_direction_board",
+    "path": "assets/studio/signage/obj_audio_direction_board.svg",
+    "category": "signage",
+    "width": 72,
+    "height": 44,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 4,
+      "y": 32,
+      "width": 64,
+      "height": 9
+    },
+    "depthOffset": 19,
+    "interactionOffset": {
+      "x": 0,
+      "y": 40
+    }
+  },
+  "obj_audio_listening_station": {
+    "key": "obj_audio_listening_station",
+    "path": "assets/studio/furniture/desk/obj_audio_listening_station.svg",
+    "category": "furniture/desk",
+    "width": 80,
+    "height": 44,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 2,
+      "y": 12,
+      "width": 76,
+      "height": 29
+    },
+    "depthOffset": 19,
+    "interactionOffset": {
+      "x": 0,
+      "y": 40
+    }
+  },
+  "obj_lead_audio_desk": {
+    "key": "obj_lead_audio_desk",
+    "path": "assets/studio/furniture/desk/obj_lead_audio_desk.svg",
+    "category": "furniture/desk",
+    "width": 76,
+    "height": 46,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 2,
+      "y": 12,
+      "width": 72,
+      "height": 31
+    },
+    "depthOffset": 20,
+    "interactionOffset": {
+      "x": 0,
+      "y": 41
+    }
+  },
+  "obj_music_desk": {
+    "key": "obj_music_desk",
+    "path": "assets/studio/furniture/desk/obj_music_desk.svg",
+    "category": "furniture/desk",
+    "width": 64,
+    "height": 42,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 2,
+      "y": 12,
+      "width": 60,
+      "height": 27
+    },
+    "depthOffset": 18,
+    "interactionOffset": {
+      "x": 0,
+      "y": 39
+    }
+  },
+  "obj_sfx_desk": {
+    "key": "obj_music_desk",
+    "path": "assets/studio/furniture/desk/obj_music_desk.svg",
+    "category": "furniture/desk",
+    "width": 64,
+    "height": 42,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 2,
+      "y": 12,
+      "width": 60,
+      "height": 27
+    },
+    "depthOffset": 18,
+    "interactionOffset": {
+      "x": 0,
+      "y": 39
+    }
+  },
+  "obj_audio_desk_available": {
+    "key": "obj_audio_desk_available",
+    "path": "assets/studio/furniture/desk/obj_audio_desk_available.svg",
+    "category": "furniture/desk",
+    "width": 64,
+    "height": 42,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 2,
+      "y": 12,
+      "width": 60,
+      "height": 27
+    },
+    "depthOffset": 18,
+    "interactionOffset": {
+      "x": 0,
+      "y": 39
+    }
+  },
+  "obj_audio_desk_offline": {
+    "key": "obj_audio_desk_offline",
+    "path": "assets/studio/furniture/desk/obj_audio_desk_offline.svg",
+    "category": "furniture/desk",
+    "width": 64,
+    "height": 42,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 2,
+      "y": 12,
+      "width": 60,
+      "height": 27
+    },
+    "depthOffset": 18,
+    "interactionOffset": {
+      "x": 0,
+      "y": 39
+    }
+  },
+  "obj_audio_discussion_table": {
+    "key": "obj_design_discussion_table",
+    "path": "assets/studio/furniture/table/obj_design_discussion_table.svg",
+    "category": "furniture/table",
+    "width": 64,
+    "height": 36,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 2,
+      "y": 10,
+      "width": 60,
+      "height": 22
+    },
+    "depthOffset": 14,
+    "interactionOffset": {
+      "x": 0,
+      "y": 36
+    }
+  },
+  "obj_audio_surround_array": {
+    "key": "obj_audio_surround_array",
+    "path": "assets/studio/technology/speaker/obj_audio_surround_array.svg",
+    "category": "technology/speaker",
+    "width": 36,
+    "height": 50,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 2,
+      "y": 15,
+      "width": 32,
+      "height": 32
+    },
+    "depthOffset": 22,
+    "interactionOffset": {
+      "x": 0,
+      "y": 43
+    }
+  },
+  "obj_presentation_screen": {
+    "key": "obj_presentation_screen",
+    "path": "assets/studio/signage/obj_presentation_screen.svg",
+    "category": "signage",
+    "width": 110,
+    "height": 58,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 4,
+      "y": 46,
+      "width": 102,
+      "height": 9
+    },
+    "depthOffset": 26,
+    "interactionOffset": {
+      "x": 0,
+      "y": 47
+    }
+  },
+  "obj_meeting_board": {
+    "key": "obj_meeting_board",
+    "path": "assets/studio/signage/obj_meeting_board.svg",
+    "category": "signage",
+    "width": 74,
+    "height": 44,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 4,
+      "y": 32,
+      "width": 66,
+      "height": 9
+    },
+    "depthOffset": 19,
+    "interactionOffset": {
+      "x": 0,
+      "y": 40
+    }
+  },
+  "obj_project_summary_board": {
+    "key": "obj_project_summary_board",
+    "path": "assets/studio/signage/obj_project_summary_board.svg",
+    "category": "signage",
+    "width": 74,
+    "height": 44,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 4,
+      "y": 32,
+      "width": 66,
+      "height": 9
+    },
+    "depthOffset": 19,
+    "interactionOffset": {
+      "x": 0,
+      "y": 40
+    }
+  },
+  "obj_large_meeting_table": {
+    "key": "obj_large_meeting_table",
+    "path": "assets/studio/furniture/table/obj_large_meeting_table.svg",
+    "category": "furniture/table",
+    "width": 140,
+    "height": 72,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 2,
+      "y": 21,
+      "width": 136,
+      "height": 47
+    },
+    "depthOffset": 32,
+    "interactionOffset": {
+      "x": 0,
+      "y": 54
+    }
+  },
+  "obj_meeting_podium": {
+    "key": "obj_meeting_podium",
+    "path": "assets/studio/furniture/cabinet/obj_meeting_podium.svg",
+    "category": "furniture/cabinet",
+    "width": 36,
+    "height": 40,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 2,
+      "y": 12,
+      "width": 32,
+      "height": 25
+    },
+    "depthOffset": 17,
+    "interactionOffset": {
+      "x": 0,
+      "y": 38
+    }
+  },
+  "obj_meeting_chair_free": {
+    "key": "obj_meeting_chair_free",
+    "path": "assets/studio/furniture/chair/obj_meeting_chair_free.svg",
+    "category": "furniture/chair",
+    "width": 24,
+    "height": 24,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": null,
+    "depthOffset": 0,
+    "interactionOffset": {
+      "x": 0,
+      "y": 30
+    }
+  },
+  "obj_meeting_chair_occupied": {
+    "key": "obj_meeting_chair_free",
+    "path": "assets/studio/furniture/chair/obj_meeting_chair_free.svg",
+    "category": "furniture/chair",
+    "width": 24,
+    "height": 24,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": null,
+    "depthOffset": 0,
+    "interactionOffset": {
+      "x": 0,
+      "y": 30
+    }
+  },
+  "obj_meeting_lounge_sofa": {
+    "key": "obj_meeting_lounge_sofa",
+    "path": "assets/studio/furniture/sofa/obj_meeting_lounge_sofa.svg",
+    "category": "furniture/sofa",
+    "width": 72,
+    "height": 36,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 2,
+      "y": 10,
+      "width": 68,
+      "height": 22
+    },
+    "depthOffset": 14,
+    "interactionOffset": {
+      "x": 0,
+      "y": 36
+    }
+  },
+  "obj_studio_directory": {
+    "key": "obj_studio_directory",
+    "path": "assets/studio/signage/obj_studio_directory.svg",
+    "category": "signage",
+    "width": 72,
+    "height": 44,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 4,
+      "y": 32,
+      "width": 64,
+      "height": 9
+    },
+    "depthOffset": 19,
+    "interactionOffset": {
+      "x": 0,
+      "y": 40
+    }
+  },
+  "obj_team_presence_board": {
+    "key": "obj_team_presence_board",
+    "path": "assets/studio/signage/obj_team_presence_board.svg",
+    "category": "signage",
+    "width": 74,
+    "height": 44,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 4,
+      "y": 32,
+      "width": 66,
+      "height": 9
+    },
+    "depthOffset": 19,
+    "interactionOffset": {
+      "x": 0,
+      "y": 40
+    }
+  },
+  "obj_announcement_board": {
+    "key": "obj_project_summary_board",
+    "path": "assets/studio/signage/obj_project_summary_board.svg",
+    "category": "signage",
+    "width": 74,
+    "height": 44,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 4,
+      "y": 32,
+      "width": 66,
+      "height": 9
+    },
+    "depthOffset": 19,
+    "interactionOffset": {
+      "x": 0,
+      "y": 40
+    }
+  },
+  "obj_plaza_project_status": {
+    "key": "obj_plaza_project_status",
+    "path": "assets/studio/signage/obj_plaza_project_status.svg",
+    "category": "signage",
+    "width": 80,
+    "height": 46,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 4,
+      "y": 34,
+      "width": 72,
+      "height": 9
+    },
+    "depthOffset": 20,
+    "interactionOffset": {
+      "x": 0,
+      "y": 41
+    }
+  },
+  "obj_plaza_lounge_bench": {
+    "key": "obj_plaza_lounge_bench",
+    "path": "assets/studio/furniture/sofa/obj_plaza_lounge_bench.svg",
+    "category": "furniture/sofa",
+    "width": 68,
+    "height": 32,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 2,
+      "y": 9,
+      "width": 64,
+      "height": 19
+    },
+    "depthOffset": 12,
+    "interactionOffset": {
+      "x": 0,
+      "y": 34
+    }
+  },
+  "obj_plaza_coffee_bar": {
+    "key": "obj_plaza_coffee_bar",
+    "path": "assets/studio/furniture/coffee/obj_plaza_coffee_bar.svg",
+    "category": "furniture/coffee",
+    "width": 48,
+    "height": 40,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 2,
+      "y": 12,
+      "width": 44,
+      "height": 25
+    },
+    "depthOffset": 17,
+    "interactionOffset": {
+      "x": 0,
+      "y": 38
+    }
+  },
+  "obj_plaza_wayfinding_sign": {
+    "key": "obj_plaza_wayfinding_sign",
+    "path": "assets/studio/signage/obj_plaza_wayfinding_sign.svg",
+    "category": "signage",
+    "width": 32,
+    "height": 40,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 4,
+      "y": 28,
+      "width": 24,
+      "height": 9
+    },
+    "depthOffset": 17,
+    "interactionOffset": {
+      "x": 0,
+      "y": 38
+    }
+  },
+  "fx_interact_ring": {
+    "key": "fx_interact_ring",
+    "path": "assets/studio/interaction/fx_interact_ring.svg",
+    "category": "interaction",
+    "width": 48,
+    "height": 48,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": null,
+    "depthOffset": 0,
+    "interactionOffset": {
+      "x": 0,
+      "y": 42
+    }
+  },
+  "env_door_threshold": {
+    "key": "env_door_threshold",
+    "path": "assets/studio/environment/doors/env_door_threshold.svg",
+    "category": "environment/doors",
+    "width": 32,
+    "height": 32,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": null,
+    "depthOffset": 0,
+    "interactionOffset": {
+      "x": 0,
+      "y": 34
+    }
+  },
+  "env_door_frame": {
+    "key": "env_door_frame",
+    "path": "assets/studio/environment/doors/env_door_frame.svg",
+    "category": "environment/doors",
+    "width": 32,
+    "height": 32,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": null,
+    "depthOffset": 0,
+    "interactionOffset": {
+      "x": 0,
+      "y": 34
+    }
+  },
+  "env_wall_corner": {
+    "key": "wall_block",
+    "path": "assets/studio/environment/walls/wall_block.svg",
+    "category": "environment/walls",
+    "width": 32,
+    "height": 32,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 0,
+      "y": 0,
+      "width": 32,
+      "height": 32
+    },
+    "depthOffset": 16,
+    "interactionOffset": {
+      "x": 0,
+      "y": 34
+    }
+  },
+  "env_window": {
+    "key": "env_window",
+    "path": "assets/studio/environment/windows/env_window.svg",
+    "category": "environment/windows",
+    "width": 64,
+    "height": 24,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": null,
+    "depthOffset": 0,
+    "interactionOffset": {
+      "x": 0,
+      "y": 30
+    }
+  },
+  "obj_shared_shelf": {
+    "key": "obj_shared_shelf",
+    "path": "assets/studio/furniture/shelf/obj_shared_shelf.svg",
+    "category": "furniture/shelf",
+    "width": 48,
+    "height": 44,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 2,
+      "y": 13,
+      "width": 44,
+      "height": 27
+    },
+    "depthOffset": 18,
+    "interactionOffset": {
+      "x": 0,
+      "y": 40
+    }
+  },
+  "obj_shared_cabinet": {
+    "key": "obj_shared_cabinet",
+    "path": "assets/studio/furniture/cabinet/obj_shared_cabinet.svg",
+    "category": "furniture/cabinet",
+    "width": 40,
+    "height": 40,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 2,
+      "y": 12,
+      "width": 36,
+      "height": 25
+    },
+    "depthOffset": 17,
+    "interactionOffset": {
+      "x": 0,
+      "y": 38
+    }
+  },
+  "obj_small_table": {
+    "key": "obj_small_table",
+    "path": "assets/studio/furniture/table/obj_small_table.svg",
+    "category": "furniture/table",
+    "width": 36,
+    "height": 28,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 2,
+      "y": 8,
+      "width": 32,
+      "height": 16
+    },
+    "depthOffset": 10,
+    "interactionOffset": {
+      "x": 0,
+      "y": 32
+    }
+  },
+  "obj_floor_lamp": {
+    "key": "obj_floor_lamp",
+    "path": "assets/studio/furniture/lamp/obj_floor_lamp.svg",
+    "category": "furniture/lamp",
+    "width": 24,
+    "height": 40,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 4,
+      "y": 33,
+      "width": 16,
+      "height": 5
+    },
+    "depthOffset": 18,
+    "interactionOffset": {
+      "x": 0,
+      "y": 38
+    }
+  },
+  "tech_monitor": {
+    "key": "tech_monitor",
+    "path": "assets/studio/technology/monitor/tech_monitor.svg",
+    "category": "technology/monitor",
+    "width": 28,
+    "height": 22,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": null,
+    "depthOffset": 0,
+    "interactionOffset": {
+      "x": 0,
+      "y": 29
+    }
+  },
+  "tech_monitor_portrait": {
+    "key": "tech_monitor_portrait",
+    "path": "assets/studio/technology/monitor/tech_monitor_portrait.svg",
+    "category": "technology/monitor",
+    "width": 20,
+    "height": 30,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": null,
+    "depthOffset": 0,
+    "interactionOffset": {
+      "x": 0,
+      "y": 33
+    }
+  },
+  "tech_computer": {
+    "key": "tech_computer",
+    "path": "assets/studio/technology/server/tech_computer.svg",
+    "category": "technology/server",
+    "width": 18,
+    "height": 28,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 2,
+      "y": 8,
+      "width": 14,
+      "height": 16
+    },
+    "depthOffset": 10,
+    "interactionOffset": {
+      "x": 0,
+      "y": 32
+    }
+  },
+  "tech_laptop": {
+    "key": "tech_laptop",
+    "path": "assets/studio/technology/laptop/tech_laptop.svg",
+    "category": "technology/laptop",
+    "width": 28,
+    "height": 24,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": null,
+    "depthOffset": 0,
+    "interactionOffset": {
+      "x": 0,
+      "y": 30
+    }
+  },
+  "tech_speaker": {
+    "key": "tech_speaker",
+    "path": "assets/studio/technology/speaker/tech_speaker.svg",
+    "category": "technology/speaker",
+    "width": 20,
+    "height": 30,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 2,
+      "y": 9,
+      "width": 16,
+      "height": 18
+    },
+    "depthOffset": 12,
+    "interactionOffset": {
+      "x": 0,
+      "y": 33
+    }
+  },
+  "decor_books": {
+    "key": "decor_books",
+    "path": "assets/studio/decorations/decor_books.svg",
+    "category": "decorations",
+    "width": 20,
+    "height": 12,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": null,
+    "depthOffset": 0,
+    "interactionOffset": {
+      "x": 0,
+      "y": 24
+    }
+  },
+  "decor_cup": {
+    "key": "decor_cup",
+    "path": "assets/studio/decorations/decor_cup.svg",
+    "category": "decorations",
+    "width": 12,
+    "height": 12,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": null,
+    "depthOffset": 0,
+    "interactionOffset": {
+      "x": 0,
+      "y": 24
+    }
+  },
+  "decor_box": {
+    "key": "decor_box",
+    "path": "assets/studio/decorations/decor_box.svg",
+    "category": "decorations",
+    "width": 22,
+    "height": 22,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 2,
+      "y": 6,
+      "width": 18,
+      "height": 12
+    },
+    "depthOffset": 7,
+    "interactionOffset": {
+      "x": 0,
+      "y": 29
+    }
+  },
+  "decor_poster": {
+    "key": "decor_poster",
+    "path": "assets/studio/decorations/decor_poster.svg",
+    "category": "decorations",
+    "width": 24,
+    "height": 30,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "collision": {
+      "x": 4,
+      "y": 18,
+      "width": 16,
+      "height": 9
+    },
+    "depthOffset": 12,
+    "interactionOffset": {
+      "x": 0,
+      "y": 33
+    }
+  }
+}

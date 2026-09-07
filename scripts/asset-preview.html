@@ -1,0 +1,14 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Studio asset verification</title><style>body{margin:0;background:#253b3c;color:#eee9da;font:14px sans-serif}header{padding:12px}button{margin:0 8px;padding:6px 12px}canvas{display:block}</style><header>Studio visual QA · local scene, no backend <button id="overview">Overview</button><button id="detail">Player view</button><span id="status">Loading…</span></header><div id="game"></div><script type="module">
+import * as Phaser from 'phaser';
+import { StudioScene, ROOMS, INTERACTIVE_OBJECTS, DOORWAYS } from '/src/studio/StudioScene.ts';
+import { STUDIO_ASSETS } from '/src/studio/assets/registry.ts';
+const game = new Phaser.Game({type:Phaser.AUTO,parent:'game',width:1280,height:880,pixelArt:true,physics:{default:'arcade',arcade:{gravity:{x:0,y:0}}}});
+const scene=new StudioScene();
+if(new URLSearchParams(location.search).has('missing')) STUDIO_ASSETS.wall_block.path='assets/studio/does-not-exist.svg';
+game.scene.add('StudioScene',scene,true,{bridgeEvents:{onObjectInteract:o=>document.querySelector('#status').textContent='Object: '+o.id,onWorkstationSit:o=>document.querySelector('#status').textContent='Seated: '+o.id}});
+window.qa={game,scene,ROOMS,INTERACTIVE_OBJECTS,DOORWAYS,STUDIO_ASSETS};
+document.querySelector('#overview').onclick=()=>{scene.cameras.main.stopFollow();scene.cameras.main.setZoom(1);scene.cameras.main.centerOn(640,440);};
+document.querySelector('#detail').onclick=()=>{scene.cameras.main.setZoom(2);scene.cameras.main.startFollow(scene.player);};
+function ready(){ if(scene.assetLoadFailed){document.querySelector('#status').textContent='Asset error';return;} if (!scene.player) { requestAnimationFrame(ready); return; } document.querySelector('#status').textContent='Ready';document.querySelector('#overview').click();} ready();
+</script></html>
+

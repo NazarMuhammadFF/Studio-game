@@ -1,0 +1,332 @@
+[
+  {
+    "key": "floor_lobby",
+    "width": 32,
+    "height": 32
+  },
+  {
+    "key": "floor_programming",
+    "width": 32,
+    "height": 32
+  },
+  {
+    "key": "floor_art",
+    "width": 32,
+    "height": 32
+  },
+  {
+    "key": "floor_design",
+    "width": 32,
+    "height": 32
+  },
+  {
+    "key": "floor_meeting",
+    "width": 32,
+    "height": 32
+  },
+  {
+    "key": "floor_lounge",
+    "width": 32,
+    "height": 32
+  },
+  {
+    "key": "floor_audio",
+    "width": 32,
+    "height": 32
+  },
+  {
+    "key": "floor_corridor",
+    "width": 32,
+    "height": 32
+  },
+  {
+    "key": "wall_block",
+    "width": 32,
+    "height": 32
+  },
+  {
+    "key": "obj_project_board",
+    "width": 64,
+    "height": 44
+  },
+  {
+    "key": "obj_reception_desk",
+    "width": 64,
+    "height": 36
+  },
+  {
+    "key": "obj_desk_monitor",
+    "width": 64,
+    "height": 42
+  },
+  {
+    "key": "obj_desk_assigned_offline",
+    "width": 64,
+    "height": 42
+  },
+  {
+    "key": "obj_desk_available",
+    "width": 64,
+    "height": 42
+  },
+  {
+    "key": "obj_chair",
+    "width": 24,
+    "height": 24
+  },
+  {
+    "key": "obj_code_whiteboard",
+    "width": 64,
+    "height": 40
+  },
+  {
+    "key": "obj_water_cooler",
+    "width": 24,
+    "height": 36
+  },
+  {
+    "key": "obj_server_rack",
+    "width": 36,
+    "height": 52
+  },
+  {
+    "key": "obj_art_easel",
+    "width": 48,
+    "height": 48
+  },
+  {
+    "key": "obj_design_board",
+    "width": 60,
+    "height": 40
+  },
+  {
+    "key": "obj_arcade_cabinet",
+    "width": 36,
+    "height": 48
+  },
+  {
+    "key": "obj_meeting_table",
+    "width": 100,
+    "height": 56
+  },
+  {
+    "key": "obj_projector_screen",
+    "width": 80,
+    "height": 40
+  },
+  {
+    "key": "obj_coffee_station",
+    "width": 36,
+    "height": 40
+  },
+  {
+    "key": "obj_lounge_sofa",
+    "width": 60,
+    "height": 32
+  },
+  {
+    "key": "obj_plant",
+    "width": 24,
+    "height": 28
+  },
+  {
+    "key": "obj_art_desk_active",
+    "width": 64,
+    "height": 42
+  },
+  {
+    "key": "obj_art_desk_offline",
+    "width": 64,
+    "height": 42
+  },
+  {
+    "key": "obj_art_desk_available",
+    "width": 64,
+    "height": 42
+  },
+  {
+    "key": "obj_moodboard_wall",
+    "width": 72,
+    "height": 44
+  },
+  {
+    "key": "obj_art_review_board",
+    "width": 72,
+    "height": 44
+  },
+  {
+    "key": "obj_art_director_desk",
+    "width": 76,
+    "height": 46
+  },
+  {
+    "key": "obj_review_bench",
+    "width": 56,
+    "height": 28
+  },
+  {
+    "key": "obj_design_desk_active",
+    "width": 64,
+    "height": 42
+  },
+  {
+    "key": "obj_design_desk_offline",
+    "width": 64,
+    "height": 42
+  },
+  {
+    "key": "obj_design_desk_available",
+    "width": 64,
+    "height": 42
+  },
+  {
+    "key": "obj_mechanic_board",
+    "width": 72,
+    "height": 44
+  },
+  {
+    "key": "obj_flow_board",
+    "width": 72,
+    "height": 44
+  },
+  {
+    "key": "obj_balancing_board",
+    "width": 72,
+    "height": 44
+  },
+  {
+    "key": "obj_lead_designer_desk",
+    "width": 76,
+    "height": 46
+  },
+  {
+    "key": "obj_design_discussion_table",
+    "width": 64,
+    "height": 36
+  },
+  {
+    "key": "obj_audio_direction_board",
+    "width": 72,
+    "height": 44
+  },
+  {
+    "key": "obj_audio_listening_station",
+    "width": 80,
+    "height": 44
+  },
+  {
+    "key": "obj_lead_audio_desk",
+    "width": 76,
+    "height": 46
+  },
+  {
+    "key": "obj_music_desk",
+    "width": 64,
+    "height": 42
+  },
+  {
+    "key": "obj_sfx_desk",
+    "width": 64,
+    "height": 42
+  },
+  {
+    "key": "obj_audio_desk_available",
+    "width": 64,
+    "height": 42
+  },
+  {
+    "key": "obj_audio_desk_offline",
+    "width": 64,
+    "height": 42
+  },
+  {
+    "key": "obj_audio_discussion_table",
+    "width": 64,
+    "height": 36
+  },
+  {
+    "key": "obj_audio_surround_array",
+    "width": 36,
+    "height": 50
+  },
+  {
+    "key": "obj_presentation_screen",
+    "width": 110,
+    "height": 58
+  },
+  {
+    "key": "obj_meeting_board",
+    "width": 74,
+    "height": 44
+  },
+  {
+    "key": "obj_project_summary_board",
+    "width": 74,
+    "height": 44
+  },
+  {
+    "key": "obj_large_meeting_table",
+    "width": 140,
+    "height": 72
+  },
+  {
+    "key": "obj_meeting_podium",
+    "width": 36,
+    "height": 40
+  },
+  {
+    "key": "obj_meeting_chair_free",
+    "width": 24,
+    "height": 24
+  },
+  {
+    "key": "obj_meeting_chair_occupied",
+    "width": 24,
+    "height": 24
+  },
+  {
+    "key": "obj_meeting_lounge_sofa",
+    "width": 72,
+    "height": 36
+  },
+  {
+    "key": "obj_studio_directory",
+    "width": 72,
+    "height": 44
+  },
+  {
+    "key": "obj_team_presence_board",
+    "width": 74,
+    "height": 44
+  },
+  {
+    "key": "obj_announcement_board",
+    "width": 74,
+    "height": 44
+  },
+  {
+    "key": "obj_plaza_project_status",
+    "width": 80,
+    "height": 46
+  },
+  {
+    "key": "obj_plaza_lounge_bench",
+    "width": 68,
+    "height": 32
+  },
+  {
+    "key": "obj_plaza_coffee_bar",
+    "width": 48,
+    "height": 40
+  },
+  {
+    "key": "obj_plaza_wayfinding_sign",
+    "width": 32,
+    "height": 40
+  },
+  {
+    "key": "fx_interact_ring",
+    "width": 48,
+    "height": 48
+  }
+]

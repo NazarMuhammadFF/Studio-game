@@ -1,0 +1,54 @@
+import fs from 'node:fs';
+import crypto from 'node:crypto';
+import {execFileSync} from 'node:child_process';
+import {createClient} from '@supabase/supabase-js';
+const fixture='C:/Users/nazar/.codex/tmp/studio-multiplayer-qa.json';
+const ref=fs.readFileSync('supabase/.temp/project-ref','utf8').trim();
+if(!/^[a-z0-9]+$/.test(ref))throw new Error('Invalid project ref');
+const raw=execFileSync('cmd.exe',['/d','/s','/c',`npx.cmd supabase projects api-keys --project-ref ${ref} --reveal -o json`],{encoding:'utf8',stdio:['ignore','pipe','pipe']});
+const keys=JSON.parse(raw);const service=keys.find(k=>k.name==='service_role'||k.type==='secret')?.api_key;
+if(!service)throw new Error('Admin key not available');
+const url=`https://${ref}.supabase.co`,admin=createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}});
+const env=Object.fromEntries(fs.readFileSync('.env','utf8').split(/\r?\n/).filter(l=>/^[A-Z_]+=/.test(l)).map(l=>{const i=l.indexOf('=');return[l.slice(0,i),l.slice(i+1).trim().replace(/^['"]|['"]$/g,'')]}));
+const key=env.VITE_SUPABASE_PUBLISHABLE_KEY||env.VITE_SUPABASE_ANON_KEY;
+const requireData=({data,error})=>{if(error)throw new Error(error.message);return data;};
+if(process.argv.includes('--cleanup')){
+ const data=JSON.parse(fs.readFileSync(fixture,'utf8'));
+ if(data.workspaceId)requireData(await admin.from('workspaces').delete().eq('id',data.workspaceId));
+ for(const user of data.users)requireData(await admin.auth.admin.deleteUser(user.id));
+ fs.unlinkSync(fixture);console.log('Removed isolated QA workspace, messages, and three temporary accounts.');process.exit(0);
+}
+const run=crypto.randomUUID().slice(0,8),saved={users:[],workspaceId:null,projectId:null};
+if(fs.existsSync(fixture))throw new Error('QA fixture already exists. Run --cleanup before creating another.');
+fs.mkdirSync('C:/Users/nazar/.codex/tmp',{recursive:true});
+const save=()=>fs.writeFileSync(fixture,JSON.stringify(saved));
+save();
+const clients=[];
+for(const label of ['a','b','c']){
+ const password=crypto.randomBytes(24).toString('base64url')+'aA1!';
+ const email=`studio-qa-${run}-${label}@example.invalid`;
+ const {user}=requireData(await admin.auth.admin.createUser({email,password,email_confirm:true,user_metadata:{display_name:`QA ${label.toUpperCase()}`,username:`qa_${run}_${label}`,discipline:'Programmer'}}));
+ saved.users.push({id:user.id,label});save();
+ const client=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
+ const auth=requireData(await client.auth.signInWithPassword({email,password}));
+ await client.realtime.setAuth(auth.session.access_token);
+ const profile=requireData(await client.from('profiles').select('*').eq('id',user.id).single());
+ Object.assign(saved.users.at(-1),{session:auth.session,profile});save();clients.push(client);
+}
+const [a,b,c]=saved.users;
+const ws=requireData(await admin.from('workspaces').insert({name:'Isolated multiplayer QA',slug:`qa-${run}`,owner_id:a.id}).select().single());saved.workspaceId=ws.id;save();
+requireData(await admin.from('workspace_members').insert({workspace_id:ws.id,user_id:b.id,role:'member'}));
+const project=requireData(await admin.from('projects').insert({workspace_id:ws.id,name:'Isolated multiplayer QA',created_by:a.id}).select().single());saved.projectId=project.id;save();
+let received=0,unauthorizedEvents=0;
+const channels=[clients[1].channel('qa-dm-recipient').on('postgres_changes',{event:'INSERT',schema:'public',table:'studio_direct_messages',filter:`recipient_id=eq.${b.id}`},()=>received++),clients[2].channel('qa-dm-outsider').on('postgres_changes',{event:'INSERT',schema:'public',table:'studio_direct_messages'},()=>unauthorizedEvents++)];
+await Promise.all(channels.map(ch=>new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('Realtime subscription timed out')),15000);ch.subscribe(status=>{if(status==='SUBSCRIBED'){clearTimeout(timer);resolve();}});} )));
+await new Promise(r=>setTimeout(r,2000));
+const row=requireData(await clients[0].from('studio_direct_messages').insert({workspace_id:ws.id,sender_id:a.id,recipient_id:b.id,content:'QA live delivery check'}).select().single());
+const receiver=requireData(await clients[1].from('studio_direct_messages').select('id').eq('id',row.id));
+const outsider=requireData(await clients[2].from('studio_direct_messages').select('id').eq('id',row.id));
+const spoof=await clients[2].from('studio_direct_messages').insert({workspace_id:ws.id,sender_id:a.id,recipient_id:b.id,content:'Must be rejected'});
+const cross=await clients[0].from('studio_direct_messages').insert({workspace_id:ws.id,sender_id:a.id,recipient_id:c.id,content:'Must be rejected'});
+for(let i=0;i<20&&!received;i++)await new Promise(r=>setTimeout(r,500));
+const result={receiverCanRead:receiver.length===1,outsiderCannotRead:outsider.length===0,spoofRejected:!!spoof.error,crossWorkspaceRejected:!!cross.error,realtimeReceived:received===1,outsiderEvents:unauthorizedEvents};
+await Promise.all(channels.map(ch=>ch.unsubscribe()));
+console.log(JSON.stringify(result));if(Object.entries(result).some(([k,v])=>k==='outsiderEvents'?v!==0:v!==true))process.exitCode=1;
