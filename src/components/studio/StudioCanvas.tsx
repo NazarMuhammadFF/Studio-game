@@ -3,6 +3,7 @@ import * as Phaser from 'phaser';
 import { StudioScene } from '@/studio/StudioScene';
 import { StudioNetwork, DirectChatPokePayload } from '@/lib/studioNetwork';
 import {
+  FurnitureDirection,
   InteractiveObjectDef,
   PlayerNetworkState,
   RoomDefinition,
@@ -38,6 +39,13 @@ export interface StudioCanvasProps {
   directChatPokeToSend?: { targetUserId: string; targetUserName: string } | null;
   onDirectChatPokeSent?: () => void;
   onIncomingDirectChatPoke?: (poke: DirectChatPokePayload) => void;
+  layoutEditRoom?: StudioRoomType | null;
+  isLayoutLocked?: boolean;
+  selectedFurnitureId?: string | null;
+  onFurnitureSelect?: (id: string | null) => void;
+  onLayoutEditModeChange?: (roomType: StudioRoomType | null, isLocked: boolean) => void;
+  rotateFurnitureRequest?: { furnitureId: string; targetRotation?: FurnitureDirection } | null;
+  onRotateFurnitureComplete?: () => void;
   isInputLocked?: boolean;
 }
 
@@ -66,6 +74,13 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
   directChatPokeToSend,
   onDirectChatPokeSent,
   onIncomingDirectChatPoke,
+  layoutEditRoom = null,
+  isLayoutLocked = true,
+  selectedFurnitureId = null,
+  onFurnitureSelect,
+  onLayoutEditModeChange,
+  rotateFurnitureRequest,
+  onRotateFurnitureComplete,
   isInputLocked = false,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -164,6 +179,12 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
       },
       onPlayerChat: (message: string) => {
         network.sendChat(message);
+      },
+      onFurnitureSelect: (furnitureId: string | null) => {
+        onFurnitureSelect?.(furnitureId);
+      },
+      onLayoutEditModeChange: (roomType: StudioRoomType | null, isLocked: boolean) => {
+        onLayoutEditModeChange?.(roomType, isLocked);
       },
       onSceneReady: () => {
         if (disposed) return;
@@ -283,6 +304,31 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
       sceneRef.current.setSelectedNearbyMember(selectedNearbyMember);
     }
   }, [sceneReady, selectedNearbyMember]);
+
+  // Handle Room Layout Edit Mode sync with Phaser scene
+  useEffect(() => {
+    if (sceneReady && sceneRef.current) {
+      sceneRef.current.setRoomLayoutEditMode(layoutEditRoom ?? null, isLayoutLocked ?? true);
+    }
+  }, [sceneReady, layoutEditRoom, isLayoutLocked]);
+
+  // Handle Selected Furniture sync with Phaser scene
+  useEffect(() => {
+    if (sceneReady && sceneRef.current && selectedFurnitureId !== undefined) {
+      sceneRef.current.setSelectedFurniture(selectedFurnitureId);
+    }
+  }, [sceneReady, selectedFurnitureId]);
+
+  // Handle Rotate Furniture Request from UI
+  useEffect(() => {
+    if (sceneReady && rotateFurnitureRequest && sceneRef.current) {
+      sceneRef.current.rotateSelectedFurniture(
+        rotateFurnitureRequest.furnitureId,
+        rotateFurnitureRequest.targetRotation
+      );
+      if (onRotateFurnitureComplete) onRotateFurnitureComplete();
+    }
+  }, [sceneReady, rotateFurnitureRequest, onRotateFurnitureComplete]);
 
   // Handle Input Lock (e.g., when workstation overlay or dialog is active)
   useEffect(() => {

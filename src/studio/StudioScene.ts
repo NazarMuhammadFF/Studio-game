@@ -13,12 +13,14 @@ import {
   StudioRoomType,
   WorkstationMemberData,
   RoomLayoutConfig,
+  FurnitureDirection,
 } from './types';
 import { Profile } from '@/types/database.types';
 import { NearbyDiscussionCluster } from './chat/mockChatTypes';
 import { NEARBY_DISCUSSIONS } from './chat/mockChatStore';
 import { DirectChatPokePayload } from '@/lib/studioNetwork';
-import { roomLayoutStore } from './roomLayoutStore';
+import { getRoomBounds, roomLayoutStore } from './roomLayoutStore';
+import { getObjectAsset } from './assets/objectAppearance';
 
 export interface RemotePlayerRecord {
   container: Phaser.GameObjects.Container;
@@ -103,6 +105,13 @@ export class StudioScene extends Phaser.Scene {
   private nearbyMeetingSeat: { seat: MeetingSeatData; table: InteractiveObjectDef } | null = null;
   private objectSprites: Map<string, Phaser.Physics.Arcade.Sprite> = new Map();
   private handleLayoutUpdateListener?: (e: Event) => void;
+  private layoutEditRoom: StudioRoomType | null = null;
+  private isLayoutLocked: boolean = true;
+  private selectedFurnitureId: string | null = null;
+  private selectionBoxGraphics?: Phaser.GameObjects.Graphics;
+  private selectionTagContainer?: Phaser.GameObjects.Container;
+  private selectionTagBg?: Phaser.GameObjects.Graphics;
+  private selectionTagText?: Phaser.GameObjects.Text;
 
   private interactHintContainer!: Phaser.GameObjects.Container;
   private interactHintText!: Phaser.GameObjects.Text;
@@ -557,7 +566,54 @@ export class StudioScene extends Phaser.Scene {
     // 6. Topmost Bubble Chat System (depth: 99999)
     this.createBubbleChatSystem();
 
-    // 7. Camera Follow System
+    // 7. In-World Layout Selection & Highlight Graphics
+    this.createSelectionGraphics();
+
+    // 8. In-World Furniture Drag and Drop Listeners for Seamless Layout Editing
+    this.input.on('dragstart', (_pointer: Phaser.Input.Pointer, gameObject: Phaser.Physics.Arcade.Sprite) => {
+      if (this.isLayoutLocked || !this.layoutEditRoom) return;
+      const objDef = gameObject.getData('objectDef') as InteractiveObjectDef;
+      if (!objDef || objDef.roomType !== this.layoutEditRoom || objDef.type === 'room_layout') return;
+      gameObject.setAlpha(0.8);
+      this.setSelectedFurniture(objDef.id);
+    });
+
+    this.input.on('drag', (_pointer: Phaser.Input.Pointer, gameObject: Phaser.Physics.Arcade.Sprite, dragX: number, dragY: number) => {
+      if (this.isLayoutLocked || !this.layoutEditRoom) return;
+      const objDef = gameObject.getData('objectDef') as InteractiveObjectDef;
+      if (!objDef || objDef.roomType !== this.layoutEditRoom || objDef.type === 'room_layout') return;
+
+      const bounds = getRoomBounds(this.layoutEditRoom);
+      const clampedX = Math.round(Math.max(bounds.minX, Math.min(bounds.maxX, dragX)));
+      const clampedY = Math.round(Math.max(bounds.minY, Math.min(bounds.maxY, dragY)));
+
+      gameObject.setPosition(clampedX, clampedY);
+      objDef.x = clampedX;
+      objDef.y = clampedY;
+
+      const asset = getObjectAsset(objDef);
+      if (asset) {
+        gameObject.setDepth(clampedY + asset.depthOffset);
+      }
+      this.updateSelectionBox(gameObject, objDef);
+    });
+
+    this.input.on('dragend', (_pointer: Phaser.Input.Pointer, gameObject: Phaser.Physics.Arcade.Sprite) => {
+      if (this.isLayoutLocked || !this.layoutEditRoom) return;
+      const objDef = gameObject.getData('objectDef') as InteractiveObjectDef;
+      if (!objDef || objDef.roomType !== this.layoutEditRoom || objDef.type === 'room_layout') return;
+
+      gameObject.setAlpha(1);
+
+      const asset = getObjectAsset(objDef);
+      if (asset) {
+        applyAssetBody(gameObject, asset);
+      }
+
+      roomLayoutStore.updateFurniturePosition(this.layoutEditRoom, objDef.id, gameObject.x, gameObject.y);
+    });
+
+    // 9. Camera Follow System
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
     this.cameras.main.setZoom(1.15);
@@ -566,7 +622,7 @@ export class StudioScene extends Phaser.Scene {
     // Initial broadcast
     this.emitNetworkUpdate(this.playerDirection, false);
 
-    // 8. Realtime Room Layout Sync Listener
+    // 10. Realtime Room Layout Sync Listener
     this.handleLayoutUpdateListener = (e: Event) => {
       const customEvent = e as CustomEvent<{ roomType: StudioRoomType; config: RoomLayoutConfig }>;
       if (customEvent.detail) {
@@ -824,7 +880,7 @@ export class StudioScene extends Phaser.Scene {
 
   private spawnInteractiveObjects() {
     INTERACTIVE_OBJECTS.forEach((objDef) => {
-      const asset = STUDIO_ASSETS[objDef.assetKey];
+      const asset = getObjectAsset(objDef);
       const textureKey = asset.key;
 
       // Check saved room layout override
@@ -851,6 +907,12 @@ export class StudioScene extends Phaser.Scene {
 
       // Direct click interaction
       obj.on('pointerdown', () => {
+        if (this.layoutEditRoom && !this.isLayoutLocked) {
+          if (objDef.roomType === this.layoutEditRoom && objDef.type !== 'room_layout') {
+            this.setSelectedFurniture(objDef.id);
+            return;
+          }
+        }
         this.triggerInteraction(objDef);
       });
 
@@ -1658,7 +1720,7 @@ export class StudioScene extends Phaser.Scene {
   public update(_time: number, _delta: number) {
     if (!this.player || !this.player.body) return;
 
-    if (this.isInputLocked) {
+    if (this.isInputLocked || (this.layoutEditRoom && !this.isLayoutLocked)) {
       this.player.setVelocity(0, 0);
       this.player.play(`${this.playerPrefix}_idle_${this.playerDirection}`, true);
       this.player.setDepth(this.player.y + (AVATAR_SPEC.height * (1 - AVATAR_SPEC.origin.y)));
@@ -2248,6 +2310,201 @@ export class StudioScene extends Phaser.Scene {
   }
 
   /**
+   * Initializes selection graphics for in-world room layout editing
+   */
+  private createSelectionGraphics() {
+    this.selectionBoxGraphics = this.add.graphics().setDepth(99990);
+
+    this.selectionTagContainer = this.add.container(0, 0).setDepth(99991).setVisible(false);
+    this.selectionTagBg = this.add.graphics();
+    this.selectionTagText = this.add
+      .text(0, 0, '', {
+        fontSize: '10px',
+        fontFamily: STUDIO_FONT.family,
+        fontStyle: 'bold',
+        color: '#38bdf8',
+        resolution: STUDIO_FONT.resolution,
+      })
+      .setOrigin(0.5, 0.5);
+
+    this.selectionTagContainer.add([this.selectionTagBg, this.selectionTagText]);
+  }
+
+  /**
+   * Updates bounding box and floating label for currently selected furniture
+   */
+  private updateSelectionBox(sprite?: Phaser.GameObjects.Sprite | null, objDef?: InteractiveObjectDef | null) {
+    if (!this.selectionBoxGraphics || !this.selectionTagContainer || !this.selectionTagBg || !this.selectionTagText) {
+      return;
+    }
+
+    this.selectionBoxGraphics.clear();
+
+    if (!sprite || !objDef || !this.layoutEditRoom || this.isLayoutLocked) {
+      this.selectionTagContainer.setVisible(false);
+      return;
+    }
+
+    const asset = getObjectAsset(objDef);
+    const w = (objDef.width && objDef.width > 0 ? objDef.width : asset.width) || 48;
+    const h = (objDef.height && objDef.height > 0 ? objDef.height : asset.height) || 48;
+    const originX = asset.origin?.x ?? 0.5;
+    const originY = asset.origin?.y ?? 0.5;
+
+    const left = sprite.x - w * originX - 6;
+    const top = sprite.y - h * originY - 6;
+    const totalW = w + 12;
+    const totalH = h + 12;
+
+    // Outer glow highlight
+    this.selectionBoxGraphics.lineStyle(2, 0x38bdf8, 0.95);
+    this.selectionBoxGraphics.strokeRoundedRect(left, top, totalW, totalH, 6);
+
+    this.selectionBoxGraphics.fillStyle(0x0284c7, 0.18);
+    this.selectionBoxGraphics.fillRoundedRect(left, top, totalW, totalH, 6);
+
+    // Corner bracket markers
+    const markerLen = 8;
+    this.selectionBoxGraphics.lineStyle(2, 0xffffff, 1);
+    this.selectionBoxGraphics.strokeLineShape(new Phaser.Geom.Line(left, top + markerLen, left, top));
+    this.selectionBoxGraphics.strokeLineShape(new Phaser.Geom.Line(left, top, left + markerLen, top));
+
+    this.selectionBoxGraphics.strokeLineShape(new Phaser.Geom.Line(left + totalW - markerLen, top, left + totalW, top));
+    this.selectionBoxGraphics.strokeLineShape(new Phaser.Geom.Line(left + totalW, top, left + totalW, top + markerLen));
+
+    this.selectionBoxGraphics.strokeLineShape(new Phaser.Geom.Line(left, top + totalH - markerLen, left, top + totalH));
+    this.selectionBoxGraphics.strokeLineShape(new Phaser.Geom.Line(left, top + totalH, left + markerLen, totalH + top));
+
+    this.selectionBoxGraphics.strokeLineShape(new Phaser.Geom.Line(left + totalW - markerLen, top + totalH, left + totalW, top + totalH));
+    this.selectionBoxGraphics.strokeLineShape(new Phaser.Geom.Line(left + totalW, top + totalH - markerLen, left + totalW, top + totalH));
+
+    // Tag Badge above object
+    const rotText = `${objDef.rotation || 0}°`;
+    this.selectionTagText.setText(`${objDef.name} [${rotText}]`);
+    const textWidth = this.selectionTagText.width;
+    const tagW = textWidth + 16;
+    const tagH = 18;
+
+    this.selectionTagBg.clear();
+    this.selectionTagBg.fillStyle(0x0a101d, 0.92);
+    this.selectionTagBg.fillRoundedRect(-tagW / 2, -tagH / 2, tagW, tagH, 5);
+    this.selectionTagBg.lineStyle(1, 0x38bdf8, 0.8);
+    this.selectionTagBg.strokeRoundedRect(-tagW / 2, -tagH / 2, tagW, tagH, 5);
+
+    this.selectionTagContainer.setPosition(sprite.x, top - 12);
+    this.selectionTagContainer.setVisible(true);
+  }
+
+  /**
+   * Sets the active selected furniture for in-world live layout editing
+   */
+  public setSelectedFurniture(furnitureId: string | null) {
+    this.selectedFurnitureId = furnitureId;
+    if (this.bridgeEvents.onFurnitureSelect) {
+      this.bridgeEvents.onFurnitureSelect(furnitureId);
+    }
+
+    if (!furnitureId) {
+      this.updateSelectionBox(null, null);
+      return;
+    }
+
+    const sprite = this.objectSprites.get(furnitureId);
+    const objDef = INTERACTIVE_OBJECTS.find((o) => o.id === furnitureId);
+    if (sprite && objDef) {
+      this.updateSelectionBox(sprite, objDef);
+    } else {
+      this.updateSelectionBox(null, null);
+    }
+  }
+
+  /**
+   * Enters or exits live in-world room layout editing mode
+   */
+  public setRoomLayoutEditMode(roomType: StudioRoomType | null, isLocked: boolean = false) {
+    this.layoutEditRoom = roomType;
+    this.isLayoutLocked = isLocked;
+
+    // Update draggability of sprites in this room
+    this.objectSprites.forEach((sprite, id) => {
+      const objDef = INTERACTIVE_OBJECTS.find((o) => o.id === id);
+      if (!objDef) return;
+
+      if (roomType && objDef.roomType === roomType && objDef.type !== 'room_layout' && !isLocked) {
+        this.input.setDraggable(sprite, true);
+      } else {
+        this.input.setDraggable(sprite, false);
+      }
+    });
+
+    if (roomType) {
+      // Smoothly focus camera on the room
+      const targetRoom = ROOMS.find((r) => r.type === roomType);
+      if (targetRoom) {
+        const centerX = targetRoom.x + targetRoom.width / 2;
+        const centerY = targetRoom.y + targetRoom.height / 2;
+        this.cameras.main.stopFollow();
+        this.cameras.main.pan(centerX, centerY, 400, 'Cubic.easeOut');
+        this.cameras.main.zoomTo(1.2, 400);
+      }
+      // Auto-select first furniture if none selected
+      const roomItems = INTERACTIVE_OBJECTS.filter((o) => o.roomType === roomType && o.type !== 'room_layout');
+      if (roomItems.length > 0 && !this.selectedFurnitureId) {
+        this.setSelectedFurniture(roomItems[0].id);
+      }
+    } else {
+      // Return camera to follow player avatar
+      this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
+      this.cameras.main.zoomTo(1.15, 300);
+      this.setSelectedFurniture(null);
+    }
+
+    this.bridgeEvents.onLayoutEditModeChange?.(roomType, isLocked);
+  }
+
+  /**
+   * 1-Click 4-direction rotation method with tactile tween bounce and body update
+   */
+  public rotateSelectedFurniture(furnitureId?: string, targetRotation?: FurnitureDirection): number {
+    const targetId = furnitureId || this.selectedFurnitureId;
+    if (!targetId || !this.layoutEditRoom) return 0;
+
+    const sprite = this.objectSprites.get(targetId);
+    const objDef = INTERACTIVE_OBJECTS.find((o) => o.id === targetId);
+    if (!sprite || !objDef) return 0;
+
+    const updatedConfig = roomLayoutStore.rotateFurniture(this.layoutEditRoom, targetId, targetRotation);
+    const updatedItem = updatedConfig.items.find((it) => it.id === targetId);
+    const newRot = updatedItem ? updatedItem.rotation : (((objDef.rotation || 0) + 90) % 360);
+
+    objDef.rotation = newRot;
+    sprite.setAngle(newRot);
+
+    const asset = getObjectAsset(objDef);
+    if (asset) {
+      applyAssetBody(sprite, asset);
+    }
+
+    // Tactile scale pop bounce animation
+    this.tweens.add({
+      targets: sprite,
+      scaleX: 1.15,
+      scaleY: 1.15,
+      duration: 90,
+      yoyo: true,
+      ease: 'Back.easeOut',
+      onUpdate: () => {
+        this.updateSelectionBox(sprite, objDef);
+      },
+      onComplete: () => {
+        this.updateSelectionBox(sprite, objDef);
+      },
+    });
+
+    return newRot;
+  }
+
+  /**
    * Applies real-time room layout repositioning and 4-direction rotation
    */
   public applyRoomLayout(_roomType: StudioRoomType, config: RoomLayoutConfig) {
@@ -2257,11 +2514,10 @@ export class StudioScene extends Phaser.Scene {
       const sprite = this.objectSprites.get(item.id);
       const objDef = INTERACTIVE_OBJECTS.find((o) => o.id === item.id);
 
-      if (sprite) {
+      if (sprite && objDef) {
         sprite.setPosition(item.x, item.y);
         sprite.setAngle(item.rotation || 0);
-        const assetKey = objDef?.assetKey || '';
-        const asset = STUDIO_ASSETS[assetKey] || null;
+        const asset = getObjectAsset(objDef);
         if (asset) {
           sprite.setDepth(item.y + asset.depthOffset);
           applyAssetBody(sprite, asset);
@@ -2274,6 +2530,14 @@ export class StudioScene extends Phaser.Scene {
         objDef.rotation = item.rotation;
       }
     });
+
+    if (this.selectedFurnitureId) {
+      const selectedSprite = this.objectSprites.get(this.selectedFurnitureId);
+      const selectedObjDef = INTERACTIVE_OBJECTS.find((o) => o.id === this.selectedFurnitureId);
+      if (selectedSprite && selectedObjDef) {
+        this.updateSelectionBox(selectedSprite, selectedObjDef);
+      }
+    }
   }
 }
 

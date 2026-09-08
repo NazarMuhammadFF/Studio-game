@@ -427,6 +427,7 @@ export interface InteractiveObjectDef {
   plazaProjectStatusData?: PlazaProjectStatusData;
   contextBubble?: string;
   rotation?: number; // 0 | 90 | 180 | 270
+  assetKey?: string;
 }
 
 export type FurnitureDirection = 0 | 90 | 180 | 270;
@@ -495,5 +496,7 @@ export interface StudioBridgeEvents {
   onPresenceUpdate?: (onlineCount: number, members: PlayerNetworkState[]) => void;
   onPlayerChat?: (message: string) => void;
   onNearbyDiscussionChange?: (cluster: any | null) => void;
+  onFurnitureSelect?: (furnitureId: string | null) => void;
+  onLayoutEditModeChange?: (roomType: StudioRoomType | null, isLocked: boolean) => void;
   onSceneReady?: () => void;
 }

@@ -1,5 +1,6 @@
 import { INTERACTIVE_OBJECTS, ROOMS } from './layout';
 import { FurnitureDirection, RoomFurnitureItem, RoomLayoutConfig, StudioRoomType } from './types';
+import { getObjectAsset } from './assets/objectAppearance';
 
 const STORAGE_KEY_PREFIX = 'studio_room_layouts_v1_';
 
@@ -28,22 +29,25 @@ export function getRoomBounds(roomType: StudioRoomType): RoomBounds {
  * Builds initial default furniture items from static layout definition
  */
 function buildDefaultRoomItems(roomType: StudioRoomType): RoomFurnitureItem[] {
-  return INTERACTIVE_OBJECTS.filter((obj) => obj.roomType === roomType).map((obj) => ({
-    id: obj.id,
-    name: obj.name,
-    type: obj.type,
-    roomType: obj.roomType,
-    x: obj.x,
-    y: obj.y,
-    width: obj.width || 48,
-    height: obj.height || 48,
-    rotation: ((obj.rotation as FurnitureDirection) || 0) as FurnitureDirection,
-    assetKey: obj.assetKey,
-    title: obj.title,
-    description: obj.description,
-    isCustomizable: true,
-    isTerminal: obj.type === 'room_layout',
-  }));
+  return INTERACTIVE_OBJECTS.filter((obj) => obj.roomType === roomType && obj.type !== 'room_layout').map((obj) => {
+    const asset = getObjectAsset(obj);
+    return {
+      id: obj.id,
+      name: obj.name,
+      type: obj.type,
+      roomType: obj.roomType,
+      x: obj.x,
+      y: obj.y,
+      width: obj.width || asset.width || 48,
+      height: obj.height || asset.height || 48,
+      rotation: ((obj.rotation as FurnitureDirection) || 0) as FurnitureDirection,
+      assetKey: obj.assetKey || asset.key,
+      title: obj.title,
+      description: obj.description,
+      isCustomizable: true,
+      isTerminal: false,
+    };
+  });
 }
 
 function getStorageKey(projectId?: string): string {

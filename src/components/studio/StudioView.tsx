@@ -26,12 +26,14 @@ import { StudioDirectoryOverlay } from './StudioDirectoryOverlay';
 import { TeamPresenceBoardOverlay } from './TeamPresenceBoardOverlay';
 import { AnnouncementBoardOverlay } from './AnnouncementBoardOverlay';
 import { PlazaProjectStatusOverlay } from './PlazaProjectStatusOverlay';
-import { RoomLayoutOverlay } from './RoomLayoutOverlay';
+import { RoomLayoutDock } from './RoomLayoutDock';
+import { roomLayoutStore } from '@/studio/roomLayoutStore';
 import { StudioChatDrawer } from './chat/StudioChatDrawer';
 import { NearbyDiscussionPrompt } from './chat/NearbyDiscussionPrompt';
 import { useMockChat } from '@/studio/chat/mockChatStore';
 import { NearbyDiscussionCluster } from '@/studio/chat/mockChatTypes';
 import {
+  FurnitureDirection,
   InteractiveObjectDef,
   PlayerNetworkState,
   RoomDefinition,
@@ -167,6 +169,15 @@ export const StudioView: React.FC = () => {
   const [chatMessageToSend, setChatMessageToSend] = useState<string | null>(null);
   const [isExternalUiOpen, setIsExternalUiOpen] = useState(false);
 
+  // Live In-World Room Layout Editing State
+  const [layoutEditRoom, setLayoutEditRoom] = useState<StudioRoomType | null>(null);
+  const [isLayoutLocked, setIsLayoutLocked] = useState<boolean>(true);
+  const [selectedFurnitureId, setSelectedFurnitureId] = useState<string | null>(null);
+  const [rotateFurnitureRequest, setRotateFurnitureRequest] = useState<{
+    furnitureId: string;
+    targetRotation?: FurnitureDirection;
+  } | null>(null);
+
   // Show room notification briefly (3.5s) when initially entering studio or switching rooms
   const handleRoomChange = React.useCallback((room: RoomDefinition) => {
     setCurrentRoom((prev) => {
@@ -274,7 +285,15 @@ export const StudioView: React.FC = () => {
         userProfile={profile}
         onRoomChange={handleRoomChange}
         onZoneChange={(zone) => setCurrentZone(zone)}
-        onObjectInteract={(obj) => setSelectedObject(obj)}
+        onObjectInteract={(obj) => {
+          if (obj.type === 'room_layout') {
+            setLayoutEditRoom(obj.roomType);
+            setIsLayoutLocked(false);
+            setSelectedFurnitureId(null);
+            return;
+          }
+          setSelectedObject(obj);
+        }}
         onNearbyObjectChange={(obj) => setNearbyObject(obj)}
         onNearbyMemberChange={(member) => setNearbyMember(member)}
         onNearbyMembersListChange={(list) => {
@@ -318,6 +337,16 @@ export const StudioView: React.FC = () => {
         directChatPokeToSend={directChatPokeToSend}
         onDirectChatPokeSent={() => setDirectChatPokeToSend(null)}
         onIncomingDirectChatPoke={(poke) => setIncomingChatPoke(poke)}
+        layoutEditRoom={layoutEditRoom}
+        isLayoutLocked={isLayoutLocked}
+        selectedFurnitureId={selectedFurnitureId}
+        onFurnitureSelect={(id) => setSelectedFurnitureId(id)}
+        onLayoutEditModeChange={(room, locked) => {
+          setLayoutEditRoom(room);
+          setIsLayoutLocked(locked);
+        }}
+        rotateFurnitureRequest={rotateFurnitureRequest}
+        onRotateFurnitureComplete={() => setRotateFurnitureRequest(null)}
         isInputLocked={isInputLocked}
       />
 
@@ -581,6 +610,33 @@ export const StudioView: React.FC = () => {
         }}
       />
 
+      {/* 10. Seamless In-World Room Layout Editing Dock */}
+      {layoutEditRoom && (
+        <RoomLayoutDock
+          roomType={layoutEditRoom}
+          projectId={currentProject.id}
+          isLocked={isLayoutLocked}
+          selectedFurnitureId={selectedFurnitureId}
+          onSelectFurniture={(id) => setSelectedFurnitureId(id)}
+          onRotateFurniture={(id, targetRotation) => {
+            setRotateFurnitureRequest({ furnitureId: id, targetRotation });
+          }}
+          onToggleLock={() => {
+            const nextLocked = !isLayoutLocked;
+            setIsLayoutLocked(nextLocked);
+            roomLayoutStore.toggleRoomLock(layoutEditRoom, nextLocked);
+          }}
+          onResetLayout={() => {
+            roomLayoutStore.resetRoomLayout(layoutEditRoom);
+          }}
+          onClose={() => {
+            setLayoutEditRoom(null);
+            setSelectedFurnitureId(null);
+            setIsLayoutLocked(true);
+          }}
+        />
+      )}
+
       {/* Modals & Overlays for World & Player Interaction */}
       {selectedMember && (
         <MemberContextualOverlay
@@ -702,12 +758,6 @@ export const StudioView: React.FC = () => {
         <PlazaProjectStatusOverlay
           object={selectedObject}
           onClose={() => setSelectedObject(null)}
-        />
-      ) : selectedObject?.type === 'room_layout' ? (
-        <RoomLayoutOverlay
-          object={selectedObject}
-          onClose={() => setSelectedObject(null)}
-          projectId={currentProject.id}
         />
       ) : selectedObject?.workstationData ? (
         <WorkstationOverlay
