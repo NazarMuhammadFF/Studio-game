@@ -37,6 +37,7 @@ import {
   StudioRoomType,
   WorkstationMemberData,
 } from '@/studio/types';
+import { DirectChatPokePayload } from '@/lib/studioNetwork';
 import { ROOMS } from '@/studio/StudioScene';
 import {
   Gamepad2,
@@ -47,6 +48,7 @@ import {
   Users,
   Volume2,
   MessageSquare,
+  X,
 } from 'lucide-react';
 
 export const StudioView: React.FC = () => {
@@ -110,6 +112,22 @@ export const StudioView: React.FC = () => {
   const [seatedWorkstation, setSeatedWorkstation] = useState<InteractiveObjectDef | null>(null);
   const [seatedWorkstationRequest, setSeatedWorkstationRequest] = useState<InteractiveObjectDef | null>(null);
   const [isSittingAtDesk, setIsSittingAtDesk] = useState<boolean>(false);
+
+  // Direct Chat Poke Signaling State
+  const [incomingChatPoke, setIncomingChatPoke] = useState<DirectChatPokePayload | null>(null);
+  const [directChatPokeToSend, setDirectChatPokeToSend] = useState<{
+    targetUserId: string;
+    targetUserName: string;
+  } | null>(null);
+
+  // Auto-dismiss incoming poke notification after 8 seconds
+  React.useEffect(() => {
+    if (!incomingChatPoke) return;
+    const timer = setTimeout(() => {
+      setIncomingChatPoke(null);
+    }, 8000);
+    return () => clearTimeout(timer);
+  }, [incomingChatPoke]);
 
   // Lock gameplay input if any modal, overlay, or chat drawer input is active
   const isInputLocked = Boolean(
@@ -177,6 +195,12 @@ export const StudioView: React.FC = () => {
           const directConv = getOrCreateDirectConversation(memberKey);
           setActiveChatConvId(directConv.id);
           setIsChatDrawerOpen(true);
+          if (member.assignedUserId) {
+            setDirectChatPokeToSend({
+              targetUserId: member.assignedUserId,
+              targetUserName: member.name,
+            });
+          }
         }}
         onNearbyDiscussionChange={(cluster) => setNearbyCluster(cluster)}
         onPlayerClick={(player) => setSelectedPlayer(player)}
@@ -193,6 +217,9 @@ export const StudioView: React.FC = () => {
         onSeatedWorkstationComplete={() => setSeatedWorkstationRequest(null)}
         chatMessageToSend={chatMessageToSend}
         onChatSent={() => setChatMessageToSend(null)}
+        directChatPokeToSend={directChatPokeToSend}
+        onDirectChatPokeSent={() => setDirectChatPokeToSend(null)}
+        onIncomingDirectChatPoke={(poke) => setIncomingChatPoke(poke)}
         isInputLocked={isInputLocked}
       />
 
@@ -500,8 +527,60 @@ export const StudioView: React.FC = () => {
           const directConv = getOrCreateDirectConversation(player.userId);
           setActiveChatConvId(directConv.id);
           setIsChatDrawerOpen(true);
+          setDirectChatPokeToSend({
+            targetUserId: player.userId,
+            targetUserName: player.displayName || 'Developer',
+          });
         }}
       />
+
+      {/* Direct Chat Poke Interactive Notification Banner */}
+      {incomingChatPoke && (
+        <div className="absolute top-4 right-4 z-50 pointer-events-auto flex items-center gap-3.5 px-4 py-3 rounded-2xl bg-slate-900/95 backdrop-blur-lg border border-amber-500/60 shadow-2xl shadow-amber-950/40 text-white animate-in slide-in-from-top-4 fade-in duration-300">
+          <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400 shrink-0">
+            <MessageSquare className="w-5 h-5" />
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping" />
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-400" />
+          </div>
+
+          <div className="flex flex-col pr-1 min-w-[170px]">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-amber-300 truncate max-w-[140px]">
+                {incomingChatPoke.fromUserName}
+              </span>
+              <span className="text-[9.5px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-semibold uppercase">
+                {incomingChatPoke.fromDiscipline || 'Member'}
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-300 mt-0.5">
+              Ingin berbicara langsung dengan Anda
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 ml-1 shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                const directConv = getOrCreateDirectConversation(incomingChatPoke.fromUserId);
+                setActiveChatConvId(directConv.id);
+                setIsChatDrawerOpen(true);
+                setIncomingChatPoke(null);
+              }}
+              className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-md transition-all active:scale-95 hover:scale-105"
+            >
+              Buka Chat
+            </button>
+            <button
+              type="button"
+              onClick={() => setIncomingChatPoke(null)}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+              title="Tutup Notifikasi"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

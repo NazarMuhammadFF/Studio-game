@@ -2,10 +2,20 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { PlayerNetworkState } from '@/studio/types';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
+export interface DirectChatPokePayload {
+  fromUserId: string;
+  fromUserName: string;
+  fromDiscipline: string;
+  targetUserId: string;
+  targetUserName: string;
+  timestamp: number;
+}
+
 export interface StudioNetworkCallbacks {
   onRemotePlayerUpdate: (player: PlayerNetworkState) => void;
   onRemotePlayerLeave: (userId: string) => void;
   onPresenceSync: (members: PlayerNetworkState[]) => void;
+  onDirectChatPoke?: (poke: DirectChatPokePayload) => void;
 }
 
 export class StudioNetwork {
@@ -109,6 +119,14 @@ export class StudioNetwork {
       }
     });
 
+    // Listen to direct chat invitations / pokes
+    this.supabaseChannel.on('broadcast', { event: 'direct_chat_poke' }, (payload) => {
+      const poke = payload.payload as DirectChatPokePayload;
+      if (poke && poke.fromUserId !== this.localPlayer.userId) {
+        this.callbacks.onDirectChatPoke?.(poke);
+      }
+    });
+
     // Presence sync for joins/leaves
     this.supabaseChannel
       .on('presence', { event: 'sync' }, () => {
@@ -204,6 +222,11 @@ export class StudioNetwork {
               payload: this.localPlayer,
             });
           }
+        } else if (data.type === 'direct_chat_poke') {
+          const poke = data.payload as DirectChatPokePayload;
+          if (poke && poke.fromUserId !== this.localPlayer.userId) {
+            this.callbacks.onDirectChatPoke?.(poke);
+          }
         } else if (data.type === 'leave') {
           const userId = data.userId as string;
           this.knownMembers.delete(userId);
@@ -274,6 +297,42 @@ export class StudioNetwork {
       chatTimestamp: Date.now(),
     };
     this.sendMovement(updatedState, true);
+  }
+
+  /**
+   * Broadcast a direct chat poke / invitation to a target member
+   */
+  public sendDirectChatPoke(targetUserId: string, targetUserName: string) {
+    const poke: DirectChatPokePayload = {
+      fromUserId: this.localPlayer.userId,
+      fromUserName: this.localPlayer.displayName,
+      fromDiscipline: this.localPlayer.discipline || 'MEMBER',
+      targetUserId,
+      targetUserName,
+      timestamp: Date.now(),
+    };
+
+    // 1. Send via Supabase broadcast channel
+    if (this.supabaseChannel && this.isSupabaseSubscribed) {
+      this.supabaseChannel.send({
+        type: 'broadcast',
+        event: 'direct_chat_poke',
+        payload: poke,
+      });
+    }
+
+    // 2. Send via local BroadcastChannel
+    if (this.broadcastChannel) {
+      try {
+        this.broadcastChannel.postMessage({
+          type: 'direct_chat_poke',
+          senderId: this.localPlayer.userId,
+          payload: poke,
+        });
+      } catch (err) {
+        console.error('Error posting direct_chat_poke to broadcastChannel', err);
+      }
+    }
   }
 
   public disconnect() {

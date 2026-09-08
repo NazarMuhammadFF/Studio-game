@@ -16,37 +16,39 @@ import {
 import { Profile } from '@/types/database.types';
 import { NearbyDiscussionCluster } from './chat/mockChatTypes';
 import { NEARBY_DISCUSSIONS } from './chat/mockChatStore';
+import { DirectChatPokePayload } from '@/lib/studioNetwork';
 
-interface RemotePlayerRecord {
+export interface RemotePlayerRecord {
   container: Phaser.GameObjects.Container;
   sprite: Phaser.GameObjects.Sprite;
   nameTag: Phaser.GameObjects.Container;
   nameBg: Phaser.GameObjects.Graphics;
   nameText: Phaser.GameObjects.Text;
   badgeText: Phaser.GameObjects.Text;
+  infoText: Phaser.GameObjects.Text;
   state: PlayerNetworkState;
   sheetKey: string;
   targetX: number;
   targetY: number;
   currentDirection: 'up' | 'down' | 'left' | 'right';
-  speechBubbleContainer?: Phaser.GameObjects.Container;
-  speechBubbleBg?: Phaser.GameObjects.Graphics;
-  speechBubbleText?: Phaser.GameObjects.Text;
-  speechBubbleTimer?: number;
+  nametagTimer?: number;
+  isExpanded?: boolean;
   lastChatMessage?: string;
   lastChatTimestamp?: number;
+  pokeTimer?: number;
 }
 
-interface ColleagueRecord {
+export interface ColleagueRecord {
   sprite: Phaser.GameObjects.Sprite;
   nameTag: Phaser.GameObjects.Container;
+  nameBg: Phaser.GameObjects.Graphics;
+  nameText: Phaser.GameObjects.Text;
+  badgeText: Phaser.GameObjects.Text;
+  infoText: Phaser.GameObjects.Text;
   data: WorkstationMemberData;
   x: number;
   y: number;
-  speechBubbleContainer?: Phaser.GameObjects.Container;
-  speechBubbleBg?: Phaser.GameObjects.Graphics;
-  speechBubbleText?: Phaser.GameObjects.Text;
-  speechBubbleTimer?: number;
+  nametagTimer?: number;
 }
 
 export const STUDIO_FONT = {
@@ -70,6 +72,12 @@ export class StudioScene extends Phaser.Scene {
   private player!: Phaser.Physics.Arcade.Sprite;
   private playerPrefix: string = 'avatar_local_player';
   private playerNameTag!: Phaser.GameObjects.Container;
+  private playerNameBg!: Phaser.GameObjects.Graphics;
+  private playerNameText!: Phaser.GameObjects.Text;
+  private playerBadgeText!: Phaser.GameObjects.Text;
+  private playerInfoText!: Phaser.GameObjects.Text;
+  private playerNametagTimer?: number;
+  private activeExpandedRemoteUserId: string | null = null;
   private wallsGroup!: Phaser.Physics.Arcade.StaticGroup;
   private objectsGroup!: Phaser.Physics.Arcade.StaticGroup;
 
@@ -104,19 +112,13 @@ export class StudioScene extends Phaser.Scene {
   private debugGraphics?: Phaser.GameObjects.Graphics;
   private debugTexts: Phaser.GameObjects.Text[] = [];
 
-  // Topmost Context Bubble Chat System (depth: 99999)
+  // Topmost Context Bubble Chat System for Objects & Desks (depth: 99999)
   private activeContextBubbleTargetId: string | null = null;
   private contextBubbleContainer!: Phaser.GameObjects.Container;
   private contextBubbleBg!: Phaser.GameObjects.Graphics;
   private contextBubbleHeader!: Phaser.GameObjects.Text;
   private contextBubbleBody!: Phaser.GameObjects.Text;
   private contextBubbleTween?: Phaser.Tweens.Tween;
-
-  // Local Player Speech Bubble (depth: 99999)
-  private playerSpeechBubbleContainer!: Phaser.GameObjects.Container;
-  private playerSpeechBubbleBg!: Phaser.GameObjects.Graphics;
-  private playerSpeechBubbleText!: Phaser.GameObjects.Text;
-  private playerSpeechBubbleTimer?: number;
 
   constructor() {
     super({ key: 'StudioScene' });
@@ -1041,8 +1043,6 @@ export class StudioScene extends Phaser.Scene {
         // Small floating colleague nameplate
         const nameTag = this.add.container(seatX, seatY - 26);
         const nameBg = this.add.graphics();
-        nameBg.fillStyle(0x0a101d, 0.85);
-        nameBg.lineStyle(1, 0x10b981, 0.6);
 
         const nameText = this.add
           .text(0, -6, ws.name, {
@@ -1064,20 +1064,35 @@ export class StudioScene extends Phaser.Scene {
           })
           .setOrigin(0.5, 0);
 
-        const tagW = Math.max(nameText.width, badgeText.width) + 14;
-        nameBg.fillRoundedRect(-tagW / 2, -18, tagW, 23, 4);
-        nameBg.strokeRoundedRect(-tagW / 2, -18, tagW, 23, 4);
+        const infoText = this.add
+          .text(0, 0, '', {
+            fontSize: '10.5px',
+            fontFamily: STUDIO_FONT.family,
+            fontStyle: '500',
+            color: '#e2e8f0',
+            wordWrap: { width: 190, useAdvancedWrap: true },
+            resolution: STUDIO_FONT.resolution,
+          })
+          .setOrigin(0, 0)
+          .setVisible(false);
 
-        nameTag.add([nameBg, nameText, badgeText]);
+        nameTag.add([nameBg, nameText, badgeText, infoText]);
         nameTag.setDepth(seatY + 25);
 
-        this.colleagues.push({
+        const colleagueRecord: ColleagueRecord = {
           sprite,
           nameTag,
+          nameBg,
+          nameText,
+          badgeText,
+          infoText,
           data: ws,
           x: seatX,
           y: seatY,
-        });
+        };
+
+        this.colleagues.push(colleagueRecord);
+        this.collapseColleagueNametag(colleagueRecord);
       }
     });
   }
@@ -1122,14 +1137,12 @@ export class StudioScene extends Phaser.Scene {
     this.physics.add.collider(this.player, this.wallsGroup);
     this.physics.add.collider(this.player, this.objectsGroup);
 
-    // Floating Nameplate
+    // Floating Nameplate (Expanding Nametag)
     this.playerNameTag = this.add.container(640, 585);
 
-    const nameBg = this.add.graphics();
-    nameBg.fillStyle(0x0a101d, 0.9);
-    nameBg.lineStyle(1.5, 0x3b82f6, 0.9);
+    this.playerNameBg = this.add.graphics();
 
-    const nameText = this.add
+    this.playerNameText = this.add
       .text(0, -6, this.userProfile.display_name || 'Player', {
         fontSize: '12px',
         fontFamily: STUDIO_FONT.family,
@@ -1139,7 +1152,7 @@ export class StudioScene extends Phaser.Scene {
       })
       .setOrigin(0.5, 1);
 
-    const badgeText = this.add
+    this.playerBadgeText = this.add
       .text(0, 0, (this.userProfile.discipline || 'MEMBER').toUpperCase(), {
         fontSize: '9px',
         fontFamily: STUDIO_FONT.family,
@@ -1149,11 +1162,26 @@ export class StudioScene extends Phaser.Scene {
       })
       .setOrigin(0.5, 0);
 
-    const textWidth = Math.max(nameText.width, badgeText.width) + 16;
-    nameBg.fillRoundedRect(-textWidth / 2, -19, textWidth, 26, 5);
-    nameBg.strokeRoundedRect(-textWidth / 2, -19, textWidth, 26, 5);
+    this.playerInfoText = this.add
+      .text(0, 0, '', {
+        fontSize: '11px',
+        fontFamily: STUDIO_FONT.family,
+        fontStyle: '500',
+        color: '#f8fafc',
+        wordWrap: { width: 200, useAdvancedWrap: true },
+        resolution: STUDIO_FONT.resolution,
+      })
+      .setOrigin(0, 0)
+      .setVisible(false);
 
-    this.playerNameTag.add([nameBg, nameText, badgeText]);
+    this.playerNameTag.add([
+      this.playerNameBg,
+      this.playerNameText,
+      this.playerBadgeText,
+      this.playerInfoText,
+    ]);
+
+    this.collapseLocalPlayerNametag();
   }
 
   private createInteractionHints() {
@@ -1231,31 +1259,6 @@ export class StudioScene extends Phaser.Scene {
       this.contextBubbleBg,
       this.contextBubbleHeader,
       this.contextBubbleBody,
-    ]);
-
-    // 2. Local Player Speech Bubble (for user chat messages)
-    this.playerSpeechBubbleContainer = this.add.container(0, 0);
-    this.playerSpeechBubbleContainer.setDepth(99999); // Topmost layer
-    this.playerSpeechBubbleContainer.setVisible(false);
-    this.playerSpeechBubbleContainer.setAlpha(0);
-
-    this.playerSpeechBubbleBg = this.add.graphics();
-
-    this.playerSpeechBubbleText = this.add
-      .text(0, 0, '', {
-        fontSize: '11.5px',
-        fontFamily: STUDIO_FONT.family,
-        fontStyle: '600',
-        color: '#ffffff',
-        align: 'center',
-        wordWrap: { width: 190, useAdvancedWrap: true },
-        resolution: STUDIO_FONT.resolution,
-      })
-      .setOrigin(0.5, 0.5);
-
-    this.playerSpeechBubbleContainer.add([
-      this.playerSpeechBubbleBg,
-      this.playerSpeechBubbleText,
     ]);
   }
 
@@ -1340,64 +1343,247 @@ export class StudioScene extends Phaser.Scene {
     });
   }
 
-  public showPlayerSpeechBubble(message: string, durationMs = 4500) {
-    if (!this.player) return;
+  /**
+   * Unified Nametag Renderer:
+   * Handles both compact 26px status nametag and expanded wide info/speech bubble card
+   */
+  public renderNametag(
+    bg: Phaser.GameObjects.Graphics,
+    nameText: Phaser.GameObjects.Text,
+    badgeText: Phaser.GameObjects.Text,
+    infoText?: Phaser.GameObjects.Text,
+    infoMessage?: string | null,
+    borderColor = 0x3b82f6,
+    bgColor = 0x0a101d,
+    isAlert = false
+  ) {
+    bg.clear();
 
-    this.playerSpeechBubbleText.setText(message);
-    const textW = this.playerSpeechBubbleText.width;
-    const textH = this.playerSpeechBubbleText.height;
-    const bubbleW = Math.max(90, Math.min(210, textW + 24));
-    const bubbleH = textH + 16;
+    if (!infoMessage || !infoText) {
+      // === COMPACT MODE (Default 26px pill tag) ===
+      if (infoText) {
+        infoText.setVisible(false);
+        infoText.setText('');
+      }
 
-    this.playerSpeechBubbleBg.clear();
-    // Glass background
-    this.playerSpeechBubbleBg.fillStyle(0x0b1320, 0.96);
-    this.playerSpeechBubbleBg.fillRoundedRect(-bubbleW / 2, -bubbleH - 10, bubbleW, bubbleH, 8);
+      nameText.setPosition(0, -6);
+      nameText.setOrigin(0.5, 1);
+      nameText.setVisible(true);
 
-    // Vibrant Cyan border
-    this.playerSpeechBubbleBg.lineStyle(1.5, 0x38bdf8, 0.95);
-    this.playerSpeechBubbleBg.strokeRoundedRect(-bubbleW / 2, -bubbleH - 10, bubbleW, bubbleH, 8);
+      badgeText.setPosition(0, 1);
+      badgeText.setOrigin(0.5, 0);
+      badgeText.setVisible(true);
 
-    // Downward tail
-    this.playerSpeechBubbleBg.fillStyle(0x0b1320, 0.96);
-    this.playerSpeechBubbleBg.fillTriangle(-5, -10, 5, -10, 0, -3);
-    this.playerSpeechBubbleBg.lineStyle(1.5, 0x38bdf8, 0.95);
-    this.playerSpeechBubbleBg.lineBetween(-5, -10, 0, -3);
-    this.playerSpeechBubbleBg.lineBetween(0, -3, 5, -10);
+      const tagW = Math.max(nameText.width, badgeText.width) + 16;
+      const tagH = 26;
 
-    this.playerSpeechBubbleText.setPosition(0, -bubbleH / 2 - 10);
+      bg.fillStyle(bgColor, 0.92);
+      bg.lineStyle(1.5, borderColor, 0.85);
+      bg.fillRoundedRect(-tagW / 2, -19, tagW, tagH, 5);
+      bg.strokeRoundedRect(-tagW / 2, -19, tagW, tagH, 5);
+    } else {
+      // === EXPANDED MODE (Nametag melebar memunculkan informasi/chat/notifikasi) ===
+      infoText.setVisible(true);
+      infoText.setText(infoMessage);
+      nameText.setVisible(true);
+      badgeText.setVisible(true);
 
-    this.playerSpeechBubbleContainer.setPosition(this.player.x, this.player.y - 42);
-    this.playerSpeechBubbleContainer.setVisible(true);
-    this.playerSpeechBubbleContainer.setScale(0.8);
-    this.playerSpeechBubbleContainer.setAlpha(0);
+      // Hitung dimensi nametag yang melebar
+      const headerW = nameText.width + badgeText.width + 24;
+      const maxBoxW = 240;
+      const contentW = Math.min(220, Math.max(infoText.width, 100));
+      const boxW = Math.min(maxBoxW, Math.max(headerW, contentW + 20));
 
-    this.tweens.add({
-      targets: this.playerSpeechBubbleContainer,
-      scaleX: 1,
-      scaleY: 1,
-      alpha: 1,
-      duration: 160,
-      ease: 'Back.easeOut',
-    });
+      infoText.setWordWrapWidth(boxW - 20, true);
+      const infoH = infoText.height;
+      const boxH = 24 + infoH + 12;
+      const topY = -boxH - 6;
 
-    if (this.playerSpeechBubbleTimer) {
-      window.clearTimeout(this.playerSpeechBubbleTimer);
+      // Card Background
+      bg.fillStyle(bgColor, 0.96);
+      bg.lineStyle(isAlert ? 2 : 1.5, borderColor, isAlert ? 1 : 0.9);
+      bg.fillRoundedRect(-boxW / 2, topY, boxW, boxH, 8);
+      bg.strokeRoundedRect(-boxW / 2, topY, boxW, boxH, 8);
+
+      // Downward pointer tail pointing to avatar head
+      bg.fillStyle(bgColor, 0.96);
+      bg.fillTriangle(-5, -6, 5, -6, 0, -1);
+      bg.lineStyle(isAlert ? 2 : 1.5, borderColor, isAlert ? 1 : 0.9);
+      bg.lineBetween(-5, -6, 0, -1);
+      bg.lineBetween(0, -1, 5, -6);
+
+      // Top Row: Name on Left, Badge on Right
+      nameText.setPosition(-boxW / 2 + 10, topY + 5);
+      nameText.setOrigin(0, 0);
+
+      badgeText.setPosition(boxW / 2 - 10, topY + 6.5);
+      badgeText.setOrigin(1, 0);
+
+      // Subtle Divider
+      bg.lineStyle(1, borderColor, 0.25);
+      bg.lineBetween(-boxW / 2 + 8, topY + 21, boxW / 2 - 8, topY + 21);
+
+      // Bottom: Info text / Chat message
+      infoText.setPosition(-boxW / 2 + 10, topY + 26);
+      infoText.setOrigin(0, 0);
+    }
+  }
+
+  public expandLocalPlayerNametag(message: string, durationMs = 4500, isAlert = false) {
+    if (this.playerNametagTimer) {
+      window.clearTimeout(this.playerNametagTimer);
+      this.playerNametagTimer = undefined;
     }
 
-    this.playerSpeechBubbleTimer = window.setTimeout(() => {
-      this.tweens.add({
-        targets: this.playerSpeechBubbleContainer,
-        scaleX: 0.8,
-        scaleY: 0.8,
-        alpha: 0,
-        duration: 180,
-        ease: 'Quad.easeIn',
-        onComplete: () => {
-          this.playerSpeechBubbleContainer.setVisible(false);
-        },
-      });
-    }, durationMs);
+    const borderColor = isAlert ? 0x38bdf8 : 0x3b82f6;
+    const bgColor = isAlert ? 0x0c1e38 : 0x0a101d;
+
+    this.renderNametag(
+      this.playerNameBg,
+      this.playerNameText,
+      this.playerBadgeText,
+      this.playerInfoText,
+      message,
+      borderColor,
+      bgColor,
+      isAlert
+    );
+
+    if (durationMs > 0) {
+      this.playerNametagTimer = window.setTimeout(() => {
+        this.collapseLocalPlayerNametag();
+      }, durationMs);
+    }
+  }
+
+  public collapseLocalPlayerNametag() {
+    if (this.playerNametagTimer) {
+      window.clearTimeout(this.playerNametagTimer);
+      this.playerNametagTimer = undefined;
+    }
+    this.renderNametag(
+      this.playerNameBg,
+      this.playerNameText,
+      this.playerBadgeText,
+      this.playerInfoText,
+      null,
+      0x3b82f6,
+      0x0a101d,
+      false
+    );
+  }
+
+  public expandRemotePlayerNametag(
+    remote: RemotePlayerRecord,
+    message: string,
+    durationMs?: number,
+    isAlert = false
+  ) {
+    if (remote.nametagTimer) {
+      window.clearTimeout(remote.nametagTimer);
+      remote.nametagTimer = undefined;
+    }
+
+    remote.isExpanded = true;
+    const borderColor = isAlert ? 0xf59e0b : 0x10b981;
+    const bgColor = isAlert ? 0x1c1917 : 0x0a101d;
+
+    this.renderNametag(
+      remote.nameBg,
+      remote.nameText,
+      remote.badgeText,
+      remote.infoText,
+      message,
+      borderColor,
+      bgColor,
+      isAlert
+    );
+
+    if (durationMs && durationMs > 0) {
+      remote.nametagTimer = window.setTimeout(() => {
+        this.collapseRemotePlayerNametag(remote);
+      }, durationMs);
+    }
+  }
+
+  public collapseRemotePlayerNametag(remote: RemotePlayerRecord) {
+    if (remote.nametagTimer) {
+      window.clearTimeout(remote.nametagTimer);
+      remote.nametagTimer = undefined;
+    }
+    remote.isExpanded = false;
+    this.renderNametag(
+      remote.nameBg,
+      remote.nameText,
+      remote.badgeText,
+      remote.infoText,
+      null,
+      0x10b981,
+      0x0a101d,
+      false
+    );
+  }
+
+  public expandColleagueNametag(
+    colleague: ColleagueRecord,
+    message: string,
+    durationMs = 4500
+  ) {
+    if (colleague.nametagTimer) {
+      window.clearTimeout(colleague.nametagTimer);
+      colleague.nametagTimer = undefined;
+    }
+
+    this.renderNametag(
+      colleague.nameBg,
+      colleague.nameText,
+      colleague.badgeText,
+      colleague.infoText,
+      message,
+      0x10b981,
+      0x0a101d,
+      false
+    );
+
+    if (durationMs > 0) {
+      colleague.nametagTimer = window.setTimeout(() => {
+        this.collapseColleagueNametag(colleague);
+      }, durationMs);
+    }
+  }
+
+  public collapseColleagueNametag(colleague: ColleagueRecord) {
+    if (colleague.nametagTimer) {
+      window.clearTimeout(colleague.nametagTimer);
+      colleague.nametagTimer = undefined;
+    }
+    this.renderNametag(
+      colleague.nameBg,
+      colleague.nameText,
+      colleague.badgeText,
+      colleague.infoText,
+      null,
+      0x10b981,
+      0x0a101d,
+      false
+    );
+  }
+
+  public handleOutgoingDirectChatPoke(targetUserName: string) {
+    this.expandLocalPlayerNametag(`💬 Mengajak ${targetUserName} berbicara...`, 5000, true);
+  }
+
+  public handleIncomingDirectChatPoke(poke: DirectChatPokePayload) {
+    const remote = this.remotePlayers.get(poke.fromUserId);
+    if (remote) {
+      this.expandRemotePlayerNametag(remote, `💬 Ingin berbicara langsung dengan Anda...`, 7000, true);
+    }
+  }
+
+  public showPlayerSpeechBubble(message: string, durationMs = 4500) {
+    if (!this.player || !message?.trim()) return;
+
+    this.expandLocalPlayerNametag(message, durationMs, false);
 
     // Broadcast chat to network
     if (this.bridgeEvents.onPlayerChat) {
@@ -1406,83 +1592,8 @@ export class StudioScene extends Phaser.Scene {
   }
 
   public showRemotePlayerSpeechBubble(remote: RemotePlayerRecord, message: string, durationMs = 4500) {
-    if (!remote.speechBubbleContainer) {
-      const container = this.add.container(0, 0);
-      container.setDepth(99999); // Topmost layer: strictly on top
-      const bg = this.add.graphics();
-      const txt = this.add
-        .text(0, 0, '', {
-          fontSize: '11px',
-          fontFamily: STUDIO_FONT.family,
-          fontStyle: '600',
-          color: '#ffffff',
-          align: 'center',
-          wordWrap: { width: 190, useAdvancedWrap: true },
-          resolution: STUDIO_FONT.resolution,
-        })
-        .setOrigin(0.5, 0.5);
-
-      container.add([bg, txt]);
-      remote.speechBubbleContainer = container;
-      remote.speechBubbleBg = bg;
-      remote.speechBubbleText = txt;
-    }
-
-    const container = remote.speechBubbleContainer;
-    const bg = remote.speechBubbleBg!;
-    const txt = remote.speechBubbleText!;
-
-    txt.setText(message);
-    const textW = txt.width;
-    const textH = txt.height;
-    const bubbleW = Math.max(90, Math.min(210, textW + 24));
-    const bubbleH = textH + 16;
-
-    bg.clear();
-    bg.fillStyle(0x0b1320, 0.96);
-    bg.fillRoundedRect(-bubbleW / 2, -bubbleH - 10, bubbleW, bubbleH, 8);
-    bg.lineStyle(1.5, 0x10b981, 0.95);
-    bg.strokeRoundedRect(-bubbleW / 2, -bubbleH - 10, bubbleW, bubbleH, 8);
-
-    bg.fillStyle(0x0b1320, 0.96);
-    bg.fillTriangle(-5, -10, 5, -10, 0, -3);
-    bg.lineStyle(1.5, 0x10b981, 0.95);
-    bg.lineBetween(-5, -10, 0, -3);
-    bg.lineBetween(0, -3, 5, -10);
-
-    txt.setPosition(0, -bubbleH / 2 - 10);
-
-    container.setPosition(remote.container.x, remote.container.y - 42);
-    container.setVisible(true);
-    container.setScale(0.8);
-    container.setAlpha(0);
-
-    this.tweens.add({
-      targets: container,
-      scaleX: 1,
-      scaleY: 1,
-      alpha: 1,
-      duration: 160,
-      ease: 'Back.easeOut',
-    });
-
-    if (remote.speechBubbleTimer) {
-      window.clearTimeout(remote.speechBubbleTimer);
-    }
-
-    remote.speechBubbleTimer = window.setTimeout(() => {
-      this.tweens.add({
-        targets: container,
-        scaleX: 0.8,
-        scaleY: 0.8,
-        alpha: 0,
-        duration: 180,
-        ease: 'Quad.easeIn',
-        onComplete: () => {
-          container.setVisible(false);
-        },
-      });
-    }, durationMs);
+    if (!message?.trim()) return;
+    this.expandRemotePlayerNametag(remote, message, durationMs, false);
   }
 
   public showColleagueSpeechBubble(memberIdOrName: string, message: string, durationMs = 4500) {
@@ -1493,93 +1604,8 @@ export class StudioScene extends Phaser.Scene {
         c.data.name.toLowerCase().includes(memberIdOrName.toLowerCase())
     );
 
-    if (!colleague) return;
-
-    if (!colleague.speechBubbleContainer) {
-      const container = this.add.container(0, 0);
-      container.setDepth(99999); // Topmost layer: strictly on top
-      const bg = this.add.graphics();
-      const txt = this.add
-        .text(0, 0, '', {
-          fontSize: '11px',
-          fontFamily: STUDIO_FONT.family,
-          fontStyle: '600',
-          color: '#ffffff',
-          align: 'center',
-          wordWrap: { width: 190, useAdvancedWrap: true },
-          resolution: STUDIO_FONT.resolution,
-        })
-        .setOrigin(0.5, 0.5);
-
-      container.add([bg, txt]);
-      container.setSize(190, 40);
-      container.setInteractive({ cursor: 'pointer' });
-      container.on('pointerdown', () => {
-        if (this.bridgeEvents.onMemberInspect) {
-          this.bridgeEvents.onMemberInspect(colleague.data);
-        }
-      });
-
-      colleague.speechBubbleContainer = container;
-      colleague.speechBubbleBg = bg;
-      colleague.speechBubbleText = txt;
-    }
-
-    const container = colleague.speechBubbleContainer;
-    const bg = colleague.speechBubbleBg!;
-    const txt = colleague.speechBubbleText!;
-
-    txt.setText(message);
-    const textW = txt.width;
-    const textH = txt.height;
-    const bubbleW = Math.max(90, Math.min(210, textW + 24));
-    const bubbleH = textH + 16;
-
-    bg.clear();
-    bg.fillStyle(0x0b1320, 0.96);
-    bg.fillRoundedRect(-bubbleW / 2, -bubbleH - 10, bubbleW, bubbleH, 8);
-    bg.lineStyle(1.5, 0x10b981, 0.95);
-    bg.strokeRoundedRect(-bubbleW / 2, -bubbleH - 10, bubbleW, bubbleH, 8);
-
-    bg.fillStyle(0x0b1320, 0.96);
-    bg.fillTriangle(-5, -10, 5, -10, 0, -3);
-    bg.lineStyle(1.5, 0x10b981, 0.95);
-    bg.lineBetween(-5, -10, 0, -3);
-    bg.lineBetween(0, -3, 5, -10);
-
-    txt.setPosition(0, -bubbleH / 2 - 10);
-
-    container.setPosition(colleague.x, colleague.y - 42);
-    container.setVisible(true);
-    container.setScale(0.8);
-    container.setAlpha(0);
-
-    this.tweens.add({
-      targets: container,
-      scaleX: 1,
-      scaleY: 1,
-      alpha: 1,
-      duration: 160,
-      ease: 'Back.easeOut',
-    });
-
-    if (colleague.speechBubbleTimer) {
-      window.clearTimeout(colleague.speechBubbleTimer);
-    }
-
-    colleague.speechBubbleTimer = window.setTimeout(() => {
-      this.tweens.add({
-        targets: container,
-        scaleX: 0.8,
-        scaleY: 0.8,
-        alpha: 0,
-        duration: 180,
-        ease: 'Quad.easeIn',
-        onComplete: () => {
-          container.setVisible(false);
-        },
-      });
-    }, durationMs);
+    if (!colleague || !message?.trim()) return;
+    this.expandColleagueNametag(colleague, message, durationMs);
   }
 
   private getRoomAccentColor(roomType: string): number {
@@ -1663,11 +1689,6 @@ export class StudioScene extends Phaser.Scene {
       this.player.play(`${this.playerPrefix}_idle_${this.playerDirection}`, true);
       this.player.setDepth(this.player.y + (AVATAR_SPEC.height * (1 - AVATAR_SPEC.origin.y)));
       this.playerNameTag.setPosition(this.player.x, this.player.y - 28);
-
-      // Local player speech bubble position tracking
-      if (this.playerSpeechBubbleContainer && this.playerSpeechBubbleContainer.visible) {
-        this.playerSpeechBubbleContainer.setPosition(this.player.x, this.player.y - 44);
-      }
 
       // Keep interpolating remote players
       this.updateRemotePlayers();
@@ -1772,11 +1793,6 @@ export class StudioScene extends Phaser.Scene {
     this.player.setDepth(this.player.y + (AVATAR_SPEC.height * (1 - AVATAR_SPEC.origin.y)));
     this.playerNameTag.setDepth(this.player.y + 35);
     this.playerNameTag.setPosition(this.player.x, this.player.y - 28);
-
-    // Update local player speech bubble position if active (strictly topmost depth 99999)
-    if (this.playerSpeechBubbleContainer && this.playerSpeechBubbleContainer.visible) {
-      this.playerSpeechBubbleContainer.setPosition(this.player.x, this.player.y - 44);
-    }
 
     // Room Detection
     this.checkRoomPresence();
@@ -1964,10 +1980,25 @@ export class StudioScene extends Phaser.Scene {
       this.interactPulseRing.setPosition(remote.container.x, remote.container.y);
       this.interactPulseRing.setAlpha(0.7);
 
-      const title = `${remote.state.displayName} • ${(remote.state.discipline || 'MEMBER').toUpperCase()}`;
-      const msg = remote.state.chatMessage || `Online di ${remote.state.currentRoom || 'Studio'}. Tekan [E] untuk mengobrol.`;
-      this.showContextBubble(`remote_${remote.state.userId}`, remote.container.x, remote.container.y - 58, title, msg, 0x10b981);
+      // Expanding Nametag: Melebar secara dinamis memunculkan info interaksi langsung pada nametag
+      if (this.activeExpandedRemoteUserId !== remote.state.userId) {
+        if (this.activeExpandedRemoteUserId) {
+          const prev = this.remotePlayers.get(this.activeExpandedRemoteUserId);
+          if (prev) this.collapseRemotePlayerNametag(prev);
+        }
+        this.activeExpandedRemoteUserId = remote.state.userId;
+        const infoMsg = remote.state.chatMessage || '💬 Tekan [E] untuk mengobrol';
+        this.expandRemotePlayerNametag(remote, infoMsg);
+      }
+      this.hideContextBubble();
       return;
+    }
+
+    // Player walked away from remote player: collapse nametag back to compact
+    if (this.activeExpandedRemoteUserId) {
+      const prev = this.remotePlayers.get(this.activeExpandedRemoteUserId);
+      if (prev) this.collapseRemotePlayerNametag(prev);
+      this.activeExpandedRemoteUserId = null;
     }
 
     let closestColleague: ColleagueRecord | null = null;
@@ -2113,12 +2144,10 @@ export class StudioScene extends Phaser.Scene {
 
       const sprite = this.add.sprite(0, 0, `${sheetKey}_down_0`).setOrigin(0.5, 0.7);
 
-      // Floating nameplate positioned 28px above avatar feet (exactly like local player)
+      // Floating nameplate positioned 28px above avatar feet (Expanding Nametag)
       const nameTag = this.add.container(0, -28);
 
       const nameBg = this.add.graphics();
-      nameBg.fillStyle(0x0a101d, 0.9);
-      nameBg.lineStyle(1.5, 0x10b981, 0.85);
 
       const nameText = this.add
         .text(0, -6, state.displayName || 'Remote Dev', {
@@ -2140,11 +2169,19 @@ export class StudioScene extends Phaser.Scene {
         })
         .setOrigin(0.5, 0);
 
-      const textWidth = Math.max(nameText.width, badgeText.width) + 16;
-      nameBg.fillRoundedRect(-textWidth / 2, -19, textWidth, 26, 5);
-      nameBg.strokeRoundedRect(-textWidth / 2, -19, textWidth, 26, 5);
+      const infoText = this.add
+        .text(0, 0, '', {
+          fontSize: '11px',
+          fontFamily: STUDIO_FONT.family,
+          fontStyle: '500',
+          color: '#f8fafc',
+          wordWrap: { width: 200, useAdvancedWrap: true },
+          resolution: STUDIO_FONT.resolution,
+        })
+        .setOrigin(0, 0)
+        .setVisible(false);
 
-      nameTag.add([nameBg, nameText, badgeText]);
+      nameTag.add([nameBg, nameText, badgeText, infoText]);
 
       const container = this.add.container(state.x, state.y, [
         sprite,
@@ -2168,6 +2205,7 @@ export class StudioScene extends Phaser.Scene {
         nameBg,
         nameText,
         badgeText,
+        infoText,
         state,
         sheetKey,
         targetX: state.x,
@@ -2176,6 +2214,7 @@ export class StudioScene extends Phaser.Scene {
       };
 
       this.remotePlayers.set(state.userId, remote);
+      this.collapseRemotePlayerNametag(remote);
     } else {
       remote.state = state;
       remote.targetX = state.x;
@@ -2184,16 +2223,13 @@ export class StudioScene extends Phaser.Scene {
       remote.nameText.setText(state.displayName || 'Remote Dev');
       remote.badgeText.setText((state.discipline || 'MEMBER').toUpperCase());
 
-      // Redraw background tag if text width changed
-      const textWidth = Math.max(remote.nameText.width, remote.badgeText.width) + 16;
-      remote.nameBg.clear();
-      remote.nameBg.fillStyle(0x0a101d, 0.9);
-      remote.nameBg.lineStyle(1.5, 0x10b981, 0.85);
-      remote.nameBg.fillRoundedRect(-textWidth / 2, -19, textWidth, 26, 5);
-      remote.nameBg.strokeRoundedRect(-textWidth / 2, -19, textWidth, 26, 5);
+      // If not currently expanded for chat/poke, keep compact
+      if (!remote.isExpanded) {
+        this.collapseRemotePlayerNametag(remote);
+      }
     }
 
-    // Handle remote player chat message bubble (layer paling atas depth 99999)
+    // Handle remote player chat message (melebarkan nametag remote player secara mulus)
     if (state.chatMessage && (state.chatTimestamp ? state.chatTimestamp !== remote.lastChatTimestamp : state.chatMessage !== remote.lastChatMessage)) {
       remote.lastChatMessage = state.chatMessage;
       remote.lastChatTimestamp = state.chatTimestamp;
@@ -2204,11 +2240,14 @@ export class StudioScene extends Phaser.Scene {
   public removeRemotePlayer(userId: string) {
     const remote = this.remotePlayers.get(userId);
     if (remote) {
-      if (remote.speechBubbleTimer) {
-        window.clearTimeout(remote.speechBubbleTimer);
+      if (remote.nametagTimer) {
+        window.clearTimeout(remote.nametagTimer);
       }
-      if (remote.speechBubbleContainer) {
-        remote.speechBubbleContainer.destroy();
+      if (remote.pokeTimer) {
+        window.clearTimeout(remote.pokeTimer);
+      }
+      if (this.activeExpandedRemoteUserId === userId) {
+        this.activeExpandedRemoteUserId = null;
       }
       remote.container.destroy();
       this.remotePlayers.delete(userId);
@@ -2238,11 +2277,6 @@ export class StudioScene extends Phaser.Scene {
         remote.container.x = targetX;
         remote.container.y = targetY;
         remote.sprite.play(`${remote.sheetKey}_idle_${remote.currentDirection}`, true);
-      }
-
-      // Update remote player speech bubble position if active (topmost depth 99999)
-      if (remote.speechBubbleContainer && remote.speechBubbleContainer.visible) {
-        remote.speechBubbleContainer.setPosition(remote.container.x, remote.container.y - 44);
       }
 
       // Y-sorting depth for remote container

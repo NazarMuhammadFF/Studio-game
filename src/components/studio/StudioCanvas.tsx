@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as Phaser from 'phaser';
 import { StudioScene } from '@/studio/StudioScene';
-import { StudioNetwork } from '@/lib/studioNetwork';
+import { StudioNetwork, DirectChatPokePayload } from '@/lib/studioNetwork';
 import {
   InteractiveObjectDef,
   PlayerNetworkState,
@@ -33,6 +33,9 @@ export interface StudioCanvasProps {
   onSeatedWorkstationComplete?: () => void;
   chatMessageToSend?: string | null;
   onChatSent?: () => void;
+  directChatPokeToSend?: { targetUserId: string; targetUserName: string } | null;
+  onDirectChatPokeSent?: () => void;
+  onIncomingDirectChatPoke?: (poke: DirectChatPokePayload) => void;
   isInputLocked?: boolean;
 }
 
@@ -56,6 +59,9 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
   onSeatedWorkstationComplete,
   chatMessageToSend,
   onChatSent,
+  directChatPokeToSend,
+  onDirectChatPokeSent,
+  onIncomingDirectChatPoke,
   isInputLocked = false,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -116,6 +122,13 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
         // do not wait for their next movement broadcast.
         if (ready && !disposed) members.forEach((member) => scene.updateRemotePlayerState(member));
         onPresenceUpdate(members);
+      },
+      onDirectChatPoke: (poke) => {
+        if (disposed) return;
+        if (ready && !disposed) {
+          scene.handleIncomingDirectChatPoke(poke);
+        }
+        onIncomingDirectChatPoke?.(poke);
       },
     });
 
@@ -246,6 +259,18 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
       if (onChatSent) onChatSent();
     }
   }, [sceneReady, chatMessageToSend, onChatSent]);
+
+  // Handle Outgoing Direct Chat Poke to target player
+  useEffect(() => {
+    if (sceneReady && directChatPokeToSend && networkRef.current && sceneRef.current) {
+      networkRef.current.sendDirectChatPoke(
+        directChatPokeToSend.targetUserId,
+        directChatPokeToSend.targetUserName
+      );
+      sceneRef.current.handleOutgoingDirectChatPoke(directChatPokeToSend.targetUserName);
+      if (onDirectChatPokeSent) onDirectChatPokeSent();
+    }
+  }, [sceneReady, directChatPokeToSend, onDirectChatPokeSent]);
 
   // Handle Input Lock (e.g., when workstation overlay or dialog is active)
   useEffect(() => {

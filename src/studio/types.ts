@@ -444,6 +444,9 @@ export interface PlayerNetworkState {
   workstationId?: string;
   chatMessage?: string;
   chatTimestamp?: number;
+  directChatTargetId?: string;
+  directChatTargetName?: string;
+  directChatTimestamp?: number;
   lastUpdated: number;
 }
 
