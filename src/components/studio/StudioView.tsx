@@ -48,8 +48,87 @@ import {
   Users,
   Volume2,
   MessageSquare,
+  Monitor,
   X,
 } from 'lucide-react';
+
+// Helper untuk deskripsi detail objek di panel HUD
+const getObjectDetailDescription = (obj: InteractiveObjectDef): string => {
+  if (obj.plazaProjectStatusData) {
+    return `Milestone: ${obj.plazaProjectStatusData.milestone} • Progress Keseluruhan: ${obj.plazaProjectStatusData.overallProgress}%`;
+  }
+  if (obj.directoryData) {
+    return `Direktori & Peta Studio • Akses informasi ${obj.directoryData.rooms.length} departemen dan area kerja`;
+  }
+  if (obj.announcementData && obj.announcementData.announcements.length > 0) {
+    return `Pengumuman Terbaru: "${obj.announcementData.announcements[0].title}" (${obj.announcementData.announcements[0].author})`;
+  }
+  if (obj.teamPresenceData) {
+    return `Presensi Tim Studio • ${obj.teamPresenceData.members.length} anggota tim aktif terdaftar di departemen`;
+  }
+  if (obj.moodboardItems && obj.moodboardItems.length > 0) {
+    return `Moodboard & Visual Direction: "${obj.moodboardItems[0].title}" (${obj.moodboardItems.length} referensi visual)`;
+  }
+  if (obj.reviewItems && obj.reviewItems.length > 0) {
+    return `QA & Art Review: ${obj.reviewItems.length} aset antri evaluasi, feedback visual, dan status approval`;
+  }
+  if (obj.mechanicItems && obj.mechanicItems.length > 0) {
+    return `Dokumentasi Mekanik: ${obj.mechanicItems[0].name} (Status: ${obj.mechanicItems[0].status})`;
+  }
+  if (obj.flowItems && obj.flowItems.length > 0) {
+    return `Level Flow & Pacing: ${obj.flowItems[0].title} (Target Pacing: ${obj.flowItems[0].targetPacing})`;
+  }
+  if (obj.balancingItems && obj.balancingItems.length > 0) {
+    return `Parameter Balancing: ${obj.balancingItems[0].parameterName} (Nilai Saat Ini: ${obj.balancingItems[0].currentValue})`;
+  }
+  if (obj.musicTracks && obj.musicTracks.length > 0) {
+    return `Soundtrack Studio: ${obj.musicTracks[0].trackName} (${obj.musicTracks[0].status})`;
+  }
+  if (obj.sfxItems && obj.sfxItems.length > 0) {
+    return `SFX Library: ${obj.sfxItems[0].sfxName} (${obj.sfxItems[0].status})`;
+  }
+  if (obj.listeningItems && obj.listeningItems.length > 0) {
+    return `Audio Listening Station: ${obj.listeningItems[0].title} (${obj.listeningItems[0].status})`;
+  }
+  if (obj.workstationData) {
+    return `Workstation ${obj.workstationData.roleTitle || obj.workstationData.discipline} • Tekan [E] untuk duduk dan fokus pada tugas departemen`;
+  }
+  if (obj.description) {
+    return obj.description;
+  }
+  return 'Area interaktif studio • Tekan [E] untuk membuka dan berinteraksi';
+};
+
+// Helper untuk deskripsi detail member/player di panel HUD
+const getMemberDetailDescription = (member: WorkstationMemberData, currentRoomName: string): string => {
+  if (member.assignedUserId) {
+    return `Pemain Online di ${currentRoomName} • Tekan [E] untuk memulai chat langsung`;
+  }
+  if (member.currentTaskTitle) {
+    return `Tugas Aktif: "${member.currentTaskTitle}" • Status: ${member.status}`;
+  }
+  if (member.currentGoal) {
+    return `Goal: ${member.currentGoal} (${member.status})`;
+  }
+  return `Anggota Tim Studio • Status: ${member.status} (${member.roleTitle})`;
+};
+
+const getObjectIcon = (obj: InteractiveObjectDef) => {
+  switch (obj.roomType) {
+    case 'programming':
+      return <Code className="w-5 h-5 text-blue-400" />;
+    case 'art':
+      return <Palette className="w-5 h-5 text-purple-400" />;
+    case 'design':
+      return <Gamepad2 className="w-5 h-5 text-emerald-400" />;
+    case 'audio':
+      return <Volume2 className="w-5 h-5 text-fuchsia-400" />;
+    case 'meeting':
+      return <Users className="w-5 h-5 text-amber-400" />;
+    default:
+      return <Monitor className="w-5 h-5 text-sky-400" />;
+  }
+};
 
 export const StudioView: React.FC = () => {
   const { profile } = useAuth();
@@ -269,26 +348,84 @@ export const StudioView: React.FC = () => {
         <span>online</span>
       </div>
 
-      {/* 5. Lightweight Overlay: Interaction Prompt (Bottom-Center) */}
-      {!isSittingAtDesk && nearbyMember && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 pointer-events-auto flex items-center gap-2.5 px-4 py-2 rounded-xl bg-emerald-600/90 backdrop-blur-md border border-emerald-400/50 shadow-2xl text-white animate-bounce select-none">
-          <kbd className="px-2 py-0.5 text-xs font-mono font-bold bg-white text-emerald-900 rounded shadow">
-            E
-          </kbd>
-          <span className="text-xs font-semibold">
-            Chat dengan {nearbyMember.name} ({nearbyMember.roleTitle})
-          </span>
-        </div>
-      )}
-
-      {!isSittingAtDesk && !nearbyMember && nearbyObject && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 pointer-events-auto flex items-center gap-2.5 px-4 py-2 rounded-xl bg-blue-600/90 backdrop-blur-md border border-blue-400/50 shadow-2xl text-white animate-bounce select-none">
-          <kbd className="px-2 py-0.5 text-xs font-mono font-bold bg-white text-blue-900 rounded shadow">
-            E
-          </kbd>
-          <span className="text-xs font-semibold">
-            Interact with {nearbyObject.name}
-          </span>
+      {/* 5. Sleek Interactive Context HUD Panel (Bottom-Center) */}
+      {!isSittingAtDesk && !isChatDrawerOpen && (nearbyMember || nearbyObject) && (
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 pointer-events-auto select-none animate-in fade-in slide-in-from-bottom-3 duration-200">
+          <div className="flex items-center gap-3.5 px-4 py-2.5 rounded-2xl bg-slate-900/95 backdrop-blur-xl border border-white/15 shadow-2xl shadow-slate-950/70 text-white min-w-[360px] max-w-[580px]">
+            {nearbyMember ? (
+              <>
+                <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 shrink-0">
+                  <Users className="w-5 h-5" />
+                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                </div>
+                <div className="flex flex-col min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-white truncate max-w-[180px]">
+                      {nearbyMember.name}
+                    </span>
+                    <span className="text-[9.5px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-semibold uppercase">
+                      {nearbyMember.roleTitle || nearbyMember.discipline}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-300 truncate mt-0.5" title={getMemberDetailDescription(nearbyMember, currentRoom.name)}>
+                    {getMemberDetailDescription(nearbyMember, currentRoom.name)}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const memberKey = nearbyMember.assignedUserId || nearbyMember.name;
+                    const directConv = getOrCreateDirectConversation(memberKey);
+                    setActiveChatConvId(directConv.id);
+                    setIsChatDrawerOpen(true);
+                    if (nearbyMember.assignedUserId) {
+                      setDirectChatPokeToSend({
+                        targetUserId: nearbyMember.assignedUserId,
+                        targetUserName: nearbyMember.name,
+                      });
+                    }
+                  }}
+                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-xs shadow-lg transition-all shrink-0"
+                >
+                  <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-white/20 rounded">E</kbd>
+                  <span>Chat Langsung</span>
+                </button>
+              </>
+            ) : nearbyObject ? (
+              <>
+                <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-sky-500/15 border border-sky-500/30 shrink-0">
+                  {getObjectIcon(nearbyObject)}
+                </div>
+                <div className="flex flex-col min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-white truncate max-w-[200px]">
+                      {nearbyObject.title || nearbyObject.name}
+                    </span>
+                    <span className="text-[9.5px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 font-semibold uppercase">
+                      {nearbyObject.roomType || 'INTERACT'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-300 truncate mt-0.5" title={getObjectDetailDescription(nearbyObject)}>
+                    {getObjectDetailDescription(nearbyObject)}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (nearbyObject.workstationData) {
+                      setSeatedWorkstationRequest(nearbyObject);
+                    } else {
+                      setSelectedObject(nearbyObject);
+                    }
+                  }}
+                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold text-xs shadow-lg transition-all shrink-0"
+                >
+                  <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-white/20 rounded">E</kbd>
+                  <span>{nearbyObject.workstationData ? 'Duduk' : 'Buka'}</span>
+                </button>
+              </>
+            ) : null}
+          </div>
         </div>
       )}
 

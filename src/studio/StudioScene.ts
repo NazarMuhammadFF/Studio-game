@@ -77,7 +77,6 @@ export class StudioScene extends Phaser.Scene {
   private playerBadgeText!: Phaser.GameObjects.Text;
   private playerInfoText!: Phaser.GameObjects.Text;
   private playerNametagTimer?: number;
-  private activeExpandedRemoteUserId: string | null = null;
   private wallsGroup!: Phaser.Physics.Arcade.StaticGroup;
   private objectsGroup!: Phaser.Physics.Arcade.StaticGroup;
 
@@ -1266,8 +1265,7 @@ export class StudioScene extends Phaser.Scene {
     targetId: string,
     x: number,
     y: number,
-    title: string,
-    message: string,
+    name: string,
     accentColor: number = 0x38bdf8
   ) {
     if (this.activeContextBubbleTargetId === targetId && this.contextBubbleContainer.visible) {
@@ -1277,36 +1275,34 @@ export class StudioScene extends Phaser.Scene {
 
     this.activeContextBubbleTargetId = targetId;
 
-    this.contextBubbleHeader.setText(title.toUpperCase());
+    this.contextBubbleHeader.setText(name);
     const accentHex = `#${accentColor.toString(16).padStart(6, '0')}`;
     this.contextBubbleHeader.setColor(accentHex);
 
-    this.contextBubbleBody.setText(message);
+    this.contextBubbleBody.setVisible(false);
+    this.contextBubbleBody.setText('');
 
-    const maxTextW = Math.max(this.contextBubbleHeader.width, this.contextBubbleBody.width);
-    const bubbleW = Math.max(160, Math.min(250, maxTextW + 26));
-    const headerH = this.contextBubbleHeader.height;
-    const bodyH = this.contextBubbleBody.height;
-    const bubbleH = headerH + bodyH + 18;
+    const bubbleW = Math.max(70, this.contextBubbleHeader.width + 20);
+    const bubbleH = 22;
 
     this.contextBubbleBg.clear();
-    // Glass background
-    this.contextBubbleBg.fillStyle(0x0b1320, 0.96);
-    this.contextBubbleBg.fillRoundedRect(-bubbleW / 2, -bubbleH - 10, bubbleW, bubbleH, 8);
+    // Dark glass pill background
+    this.contextBubbleBg.fillStyle(0x0b1320, 0.94);
+    this.contextBubbleBg.fillRoundedRect(-bubbleW / 2, -bubbleH - 8, bubbleW, bubbleH, 6);
 
     // Glowing colored border
     this.contextBubbleBg.lineStyle(1.5, accentColor, 0.9);
-    this.contextBubbleBg.strokeRoundedRect(-bubbleW / 2, -bubbleH - 10, bubbleW, bubbleH, 8);
+    this.contextBubbleBg.strokeRoundedRect(-bubbleW / 2, -bubbleH - 8, bubbleW, bubbleH, 6);
 
     // Downward tail pointing to target
-    this.contextBubbleBg.fillStyle(0x0b1320, 0.96);
-    this.contextBubbleBg.fillTriangle(-6, -10, 6, -10, 0, -2);
+    this.contextBubbleBg.fillStyle(0x0b1320, 0.94);
+    this.contextBubbleBg.fillTriangle(-4, -8, 4, -8, 0, -2);
     this.contextBubbleBg.lineStyle(1.5, accentColor, 0.9);
-    this.contextBubbleBg.lineBetween(-6, -10, 0, -2);
-    this.contextBubbleBg.lineBetween(0, -2, 6, -10);
+    this.contextBubbleBg.lineBetween(-4, -8, 0, -2);
+    this.contextBubbleBg.lineBetween(0, -2, 4, -8);
 
-    this.contextBubbleHeader.setPosition(0, -bubbleH - 10 + 7);
-    this.contextBubbleBody.setPosition(0, -bubbleH - 10 + 7 + headerH + 3);
+    this.contextBubbleHeader.setPosition(0, -bubbleH / 2 - 8);
+    this.contextBubbleHeader.setOrigin(0.5, 0.5);
 
     this.contextBubbleContainer.setPosition(x, y);
     this.contextBubbleContainer.setVisible(true);
@@ -1320,7 +1316,7 @@ export class StudioScene extends Phaser.Scene {
       scaleX: 1,
       scaleY: 1,
       alpha: 1,
-      duration: 160,
+      duration: 140,
       ease: 'Back.easeOut',
     });
   }
@@ -1626,60 +1622,7 @@ export class StudioScene extends Phaser.Scene {
     }
   }
 
-  private getContextMessageForObject(obj: InteractiveObjectDef): string {
-    if (obj.contextBubble) return obj.contextBubble;
-    if (obj.plazaProjectStatusData) {
-      return `Milestone: ${obj.plazaProjectStatusData.milestone} (${obj.plazaProjectStatusData.overallProgress}%)`;
-    }
-    if (obj.directoryData) {
-      return `Peta studio: Akses ${obj.directoryData.rooms.length} departemen dan koridor`;
-    }
-    if (obj.announcementData && obj.announcementData.announcements.length > 0) {
-      return obj.announcementData.announcements[0].title;
-    }
-    if (obj.teamPresenceData) {
-      return `Presensi langsung: ${obj.teamPresenceData.members.length} anggota tim aktif`;
-    }
-    if (obj.moodboardItems && obj.moodboardItems.length > 0) {
-      return `Moodboard: ${obj.moodboardItems[0].title}`;
-    }
-    if (obj.reviewItems && obj.reviewItems.length > 0) {
-      return `Review: ${obj.reviewItems.length} aset antri evaluasi & approval`;
-    }
-    if (obj.mechanicItems && obj.mechanicItems.length > 0) {
-      return `Mekanik: ${obj.mechanicItems[0].name} (${obj.mechanicItems[0].status})`;
-    }
-    if (obj.flowItems && obj.flowItems.length > 0) {
-      return `Level Flow: ${obj.flowItems[0].title} (${obj.flowItems[0].targetPacing})`;
-    }
-    if (obj.balancingItems && obj.balancingItems.length > 0) {
-      return `Balancing: ${obj.balancingItems[0].parameterName} (${obj.balancingItems[0].currentValue})`;
-    }
-    if (obj.musicTracks && obj.musicTracks.length > 0) {
-      return `Soundtrack: ${obj.musicTracks[0].trackName} (${obj.musicTracks[0].status})`;
-    }
-    if (obj.sfxItems && obj.sfxItems.length > 0) {
-      return `SFX: ${obj.sfxItems[0].sfxName} (${obj.sfxItems[0].status})`;
-    }
-    if (obj.listeningItems && obj.listeningItems.length > 0) {
-      return `Listening: ${obj.listeningItems[0].title} (${obj.listeningItems[0].status})`;
-    }
-    if (obj.description) {
-      return obj.description;
-    }
-    return obj.title || obj.name;
-  }
 
-  private getContextMessageForColleague(member: WorkstationMemberData): string {
-    if (member.contextBubble) return member.contextBubble;
-    if (member.currentTaskTitle) {
-      return `"${member.currentTaskTitle}"`;
-    }
-    if (member.currentGoal) {
-      return `${member.status}: ${member.currentGoal}`;
-    }
-    return `Status: ${member.status} (${member.roleTitle})`;
-  }
 
   public update(_time: number, _delta: number) {
     if (!this.player || !this.player.body) return;
@@ -1899,12 +1842,9 @@ export class StudioScene extends Phaser.Scene {
       this.interactPulseRing.setPosition(targetSeat.x, targetSeat.y);
       this.interactPulseRing.setAlpha(0.6);
 
-      // Contextual Bubble: Shown at topmost depth 99999 when nearby, hidden otherwise
+      // Contextual Bubble: Shown at topmost depth 99999 when nearby (only name)
       const seatTitle = `KURSI RAPAT #${targetSeat.seatIndex}`;
-      const seatMsg = targetSeat.occupiedBy
-        ? `Sedang diduduki: ${targetSeat.occupantName || 'Anggota Tim'}`
-        : 'Kursi tersedia. Tekan [E] untuk duduk & berdiskusi bersama tim.';
-      this.showContextBubble(`seat_${targetSeat.id}`, targetSeat.x, targetSeat.y - 42, seatTitle, seatMsg, 0xf59e0b);
+      this.showContextBubble(`seat_${targetSeat.id}`, targetSeat.x, targetSeat.y - 36, seatTitle, 0xf59e0b);
       return;
     }
 
@@ -1980,25 +1920,10 @@ export class StudioScene extends Phaser.Scene {
       this.interactPulseRing.setPosition(remote.container.x, remote.container.y);
       this.interactPulseRing.setAlpha(0.7);
 
-      // Expanding Nametag: Melebar secara dinamis memunculkan info interaksi langsung pada nametag
-      if (this.activeExpandedRemoteUserId !== remote.state.userId) {
-        if (this.activeExpandedRemoteUserId) {
-          const prev = this.remotePlayers.get(this.activeExpandedRemoteUserId);
-          if (prev) this.collapseRemotePlayerNametag(prev);
-        }
-        this.activeExpandedRemoteUserId = remote.state.userId;
-        const infoMsg = remote.state.chatMessage || '💬 Tekan [E] untuk mengobrol';
-        this.expandRemotePlayerNametag(remote, infoMsg);
-      }
+      // Untuk player: tidak diperlukan bubble info ini karena sudah cukup dengan gamertag.
+      // Detail lengkap disajikan dalam panel HUD di layar.
       this.hideContextBubble();
       return;
-    }
-
-    // Player walked away from remote player: collapse nametag back to compact
-    if (this.activeExpandedRemoteUserId) {
-      const prev = this.remotePlayers.get(this.activeExpandedRemoteUserId);
-      if (prev) this.collapseRemotePlayerNametag(prev);
-      this.activeExpandedRemoteUserId = null;
     }
 
     let closestColleague: ColleagueRecord | null = null;
@@ -2030,12 +1955,10 @@ export class StudioScene extends Phaser.Scene {
       this.interactPulseRing.setPosition(colleague.x, colleague.y);
       this.interactPulseRing.setAlpha(0.6);
 
-      // Contextual Bubble: Shown at topmost depth 99999 when nearby
-      const memberTitle = `${member.name} • ${member.discipline.toUpperCase()}`;
-      const memberMsg = this.getContextMessageForColleague(member);
+      // Contextual Bubble: HANYA menampilkan nama saja
       const roomAccent = this.getRoomAccentColor(this.currentRoom.type);
       const colleagueKey = member.assignedUserId || member.name;
-      this.showContextBubble(`colleague_${colleagueKey}`, colleague.x, colleague.y - 50, memberTitle, memberMsg, roomAccent);
+      this.showContextBubble(`colleague_${colleagueKey}`, colleague.x, colleague.y - 45, member.name, roomAccent);
       return;
     }
 
@@ -2059,11 +1982,10 @@ export class StudioScene extends Phaser.Scene {
       this.interactPulseRing.setPosition(obj.x + offset.x, obj.y + offset.y);
       this.interactPulseRing.setAlpha(0.6);
 
-      // Contextual Bubble: Shown at topmost depth 99999 when nearby
+      // Contextual Bubble: HANYA menampilkan nama saja
       const objTitle = obj.title || obj.name;
-      const objMsg = this.getContextMessageForObject(obj);
       const roomAccent = this.getRoomAccentColor(obj.roomType || this.currentRoom.type);
-      this.showContextBubble(`obj_${obj.id}`, obj.x, obj.y - (obj.height || 32) / 2 - 28, objTitle, objMsg, roomAccent);
+      this.showContextBubble(`obj_${obj.id}`, obj.x, obj.y - (obj.height || 32) / 2 - 24, objTitle, roomAccent);
     } else {
       this.interactHintContainer.setVisible(false);
       this.interactPulseRing.setAlpha(0);
@@ -2245,9 +2167,6 @@ export class StudioScene extends Phaser.Scene {
       }
       if (remote.pokeTimer) {
         window.clearTimeout(remote.pokeTimer);
-      }
-      if (this.activeExpandedRemoteUserId === userId) {
-        this.activeExpandedRemoteUserId = null;
       }
       remote.container.destroy();
       this.remotePlayers.delete(userId);
