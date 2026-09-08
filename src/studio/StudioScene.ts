@@ -1045,23 +1045,24 @@ export class StudioScene extends Phaser.Scene {
 
         const nameText = this.add
           .text(0, -6, ws.name, {
-            fontSize: '10.5px',
+            fontSize: '11px',
             fontFamily: STUDIO_FONT.family,
             fontStyle: 'bold',
             color: '#f8fafc',
             resolution: STUDIO_FONT.resolution,
           })
-          .setOrigin(0.5, 1);
+          .setOrigin(0.5, 0.5);
 
         const badgeText = this.add
-          .text(0, 1, 'IN FLOW', {
+          .text(0, 0, '', {
             fontSize: '8.5px',
             fontFamily: STUDIO_FONT.family,
             fontStyle: 'bold',
             color: '#34d399',
             resolution: STUDIO_FONT.resolution,
           })
-          .setOrigin(0.5, 0);
+          .setOrigin(0.5, 0)
+          .setVisible(false);
 
         const infoText = this.add
           .text(0, 0, '', {
@@ -1143,23 +1144,24 @@ export class StudioScene extends Phaser.Scene {
 
     this.playerNameText = this.add
       .text(0, -6, this.userProfile.display_name || 'Player', {
-        fontSize: '12px',
+        fontSize: '11.5px',
         fontFamily: STUDIO_FONT.family,
         fontStyle: 'bold',
         color: '#ffffff',
         resolution: STUDIO_FONT.resolution,
       })
-      .setOrigin(0.5, 1);
+      .setOrigin(0.5, 0.5);
 
     this.playerBadgeText = this.add
-      .text(0, 0, (this.userProfile.discipline || 'MEMBER').toUpperCase(), {
+      .text(0, 0, '', {
         fontSize: '9px',
         fontFamily: STUDIO_FONT.family,
         fontStyle: 'bold',
         color: '#60a5fa',
         resolution: STUDIO_FONT.resolution,
       })
-      .setOrigin(0.5, 0);
+      .setOrigin(0.5, 0)
+      .setVisible(false);
 
     this.playerInfoText = this.add
       .text(0, 0, '', {
@@ -1356,43 +1358,43 @@ export class StudioScene extends Phaser.Scene {
     bg.clear();
 
     if (!infoMessage || !infoText) {
-      // === COMPACT MODE (Default 26px pill tag) ===
+      // === COMPACT MODE (Default: Gametag player hanya nama saja) ===
       if (infoText) {
         infoText.setVisible(false);
         infoText.setText('');
       }
 
+      badgeText.setVisible(false);
+      badgeText.setText('');
+
       nameText.setPosition(0, -6);
-      nameText.setOrigin(0.5, 1);
+      nameText.setOrigin(0.5, 0.5);
       nameText.setVisible(true);
 
-      badgeText.setPosition(0, 1);
-      badgeText.setOrigin(0.5, 0);
-      badgeText.setVisible(true);
-
-      const tagW = Math.max(nameText.width, badgeText.width) + 16;
-      const tagH = 26;
+      const tagW = nameText.width + 16;
+      const tagH = 18;
 
       bg.fillStyle(bgColor, 0.92);
       bg.lineStyle(1.5, borderColor, 0.85);
-      bg.fillRoundedRect(-tagW / 2, -19, tagW, tagH, 5);
-      bg.strokeRoundedRect(-tagW / 2, -19, tagW, tagH, 5);
+      bg.fillRoundedRect(-tagW / 2, -15, tagW, tagH, 5);
+      bg.strokeRoundedRect(-tagW / 2, -15, tagW, tagH, 5);
     } else {
-      // === EXPANDED MODE (Nametag melebar memunculkan informasi/chat/notifikasi) ===
+      // === EXPANDED MODE (Nametag melebar memunculkan pesan/chat/notifikasi) ===
       infoText.setVisible(true);
       infoText.setText(infoMessage);
       nameText.setVisible(true);
-      badgeText.setVisible(true);
+      badgeText.setVisible(false);
+      badgeText.setText('');
 
       // Hitung dimensi nametag yang melebar
-      const headerW = nameText.width + badgeText.width + 24;
+      const headerW = nameText.width + 24;
       const maxBoxW = 240;
       const contentW = Math.min(220, Math.max(infoText.width, 100));
       const boxW = Math.min(maxBoxW, Math.max(headerW, contentW + 20));
 
       infoText.setWordWrapWidth(boxW - 20, true);
       const infoH = infoText.height;
-      const boxH = 24 + infoH + 12;
+      const boxH = 20 + infoH + 12;
       const topY = -boxH - 6;
 
       // Card Background
@@ -1408,19 +1410,16 @@ export class StudioScene extends Phaser.Scene {
       bg.lineBetween(-5, -6, 0, -1);
       bg.lineBetween(0, -1, 5, -6);
 
-      // Top Row: Name on Left, Badge on Right
-      nameText.setPosition(-boxW / 2 + 10, topY + 5);
+      // Top Row: Name on Left
+      nameText.setPosition(-boxW / 2 + 10, topY + 4);
       nameText.setOrigin(0, 0);
-
-      badgeText.setPosition(boxW / 2 - 10, topY + 6.5);
-      badgeText.setOrigin(1, 0);
 
       // Subtle Divider
       bg.lineStyle(1, borderColor, 0.25);
-      bg.lineBetween(-boxW / 2 + 8, topY + 21, boxW / 2 - 8, topY + 21);
+      bg.lineBetween(-boxW / 2 + 8, topY + 18, boxW / 2 - 8, topY + 18);
 
       // Bottom: Info text / Chat message
-      infoText.setPosition(-boxW / 2 + 10, topY + 26);
+      infoText.setPosition(-boxW / 2 + 10, topY + 22);
       infoText.setOrigin(0, 0);
     }
   }
@@ -2059,23 +2058,24 @@ export class StudioScene extends Phaser.Scene {
 
       const nameText = this.add
         .text(0, -6, state.displayName || 'Remote Dev', {
-          fontSize: '12px',
+          fontSize: '11.5px',
           fontFamily: STUDIO_FONT.family,
           fontStyle: 'bold',
           color: '#ffffff',
           resolution: STUDIO_FONT.resolution,
         })
-        .setOrigin(0.5, 1);
+        .setOrigin(0.5, 0.5);
 
       const badgeText = this.add
-        .text(0, 0, (state.discipline || 'MEMBER').toUpperCase(), {
+        .text(0, 0, '', {
           fontSize: '9px',
           fontFamily: STUDIO_FONT.family,
           fontStyle: 'bold',
           color: '#34d399',
           resolution: STUDIO_FONT.resolution,
         })
-        .setOrigin(0.5, 0);
+        .setOrigin(0.5, 0)
+        .setVisible(false);
 
       const infoText = this.add
         .text(0, 0, '', {
