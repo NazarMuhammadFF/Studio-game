@@ -103,8 +103,9 @@ export function getObjectAsset(objDef: Pick<InteractiveObjectDef, 'id' | 'type' 
         else if (objDef.id.includes('design_discussion')) textureKey = 'obj_design_discussion_table';
         else if (objDef.id.includes('audio_discussion')) textureKey = 'obj_audio_discussion_table';
         else textureKey = 'obj_lounge_sofa';
+      } else if (objDef.type === 'room_layout') {
+        textureKey = 'obj_studio_directory';
       }
-
 
   return STUDIO_ASSETS[textureKey];
 }

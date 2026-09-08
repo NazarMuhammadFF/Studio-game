@@ -156,6 +156,17 @@ export const ROOMS: RoomDefinition[] = [
 const objects: Omit<InteractiveObjectDef, 'width' | 'height'>[] = [
   // Central Plaza & Lobby (Studio Hub)
   {
+    id: 'obj_room_layout_lobby',
+    name: 'Console Pengatur Ruangan (Lobby)',
+    type: 'room_layout',
+    x: 485,
+    y: 785,
+    roomType: 'lobby',
+    title: 'Konsol Penataan Ruangan — Central Plaza',
+    description: 'Atur posisi furniture, putar arah 4 orientasi (0°, 90°, 180°, 270°), dan kunci layout ruangan.',
+    actionText: 'Atur Layout Ruangan',
+  },
+  {
     id: 'obj_studio_directory',
     name: 'Studio Navigation Directory',
     type: 'studio_directory',
@@ -279,6 +290,17 @@ const objects: Omit<InteractiveObjectDef, 'width' | 'height'>[] = [
   },
 
   // Programming Room - Engineering & Code Lab Workstations
+  {
+    id: 'obj_room_layout_programming',
+    name: 'Console Pengatur Ruangan (Code Lab)',
+    type: 'room_layout',
+    x: 75,
+    y: 75,
+    roomType: 'programming',
+    title: 'Konsol Penataan Ruangan — Engineering & Code Lab',
+    description: 'Atur posisi furniture, putar arah 4 orientasi (0°, 90°, 180°, 270°), dan kunci layout ruangan.',
+    actionText: 'Atur Layout Ruangan',
+  },
   {
     id: 'obj_workstation_alex',
     name: 'Workstation 1 — Alex Rivera',
@@ -443,6 +465,17 @@ const objects: Omit<InteractiveObjectDef, 'width' | 'height'>[] = [
   },
 
   // Art Room — Dedicated Visual Production Studio
+  {
+    id: 'obj_room_layout_art',
+    name: 'Console Pengatur Ruangan (Art Studio)',
+    type: 'room_layout',
+    x: 1205,
+    y: 75,
+    roomType: 'art',
+    title: 'Konsol Penataan Ruangan — Art & Animation Studio',
+    description: 'Atur posisi furniture, putar arah 4 orientasi (0°, 90°, 180°, 270°), dan kunci layout ruangan.',
+    actionText: 'Atur Layout Ruangan',
+  },
   {
     id: 'obj_moodboard_wall',
     name: 'Reference Wall & Moodboard',
@@ -715,6 +748,17 @@ const objects: Omit<InteractiveObjectDef, 'width' | 'height'>[] = [
   },
 
   // Game Design Bay — Systems, Mechanics & Pacing Lab
+  {
+    id: 'obj_room_layout_design',
+    name: 'Console Pengatur Ruangan (Design Bay)',
+    type: 'room_layout',
+    x: 75,
+    y: 495,
+    roomType: 'design',
+    title: 'Konsol Penataan Ruangan — Game Design & Narrative Bay',
+    description: 'Atur posisi furniture, putar arah 4 orientasi (0°, 90°, 180°, 270°), dan kunci layout ruangan.',
+    actionText: 'Atur Layout Ruangan',
+  },
   {
     id: 'obj_mechanic_board',
     name: 'Gameplay Mechanics Board',
@@ -1035,6 +1079,17 @@ const objects: Omit<InteractiveObjectDef, 'width' | 'height'>[] = [
   },
 
   // Audio & Sound Studio — Dedicated Audio Production & Listening Lab
+  {
+    id: 'obj_room_layout_audio',
+    name: 'Console Pengatur Ruangan (Audio Studio)',
+    type: 'room_layout',
+    x: 1205,
+    y: 495,
+    roomType: 'audio',
+    title: 'Konsol Penataan Ruangan — Audio & Sound Studio',
+    description: 'Atur posisi furniture, putar arah 4 orientasi (0°, 90°, 180°, 270°), dan kunci layout ruangan.',
+    actionText: 'Atur Layout Ruangan',
+  },
   {
     id: 'obj_audio_direction_board',
     name: 'Audio Direction & Blueprint Board',
@@ -1412,6 +1467,17 @@ const objects: Omit<InteractiveObjectDef, 'width' | 'height'>[] = [
   },
 
   // Conference & Strategy Hub (Meeting Room)
+  {
+    id: 'obj_room_layout_meeting',
+    name: 'Console Pengatur Ruangan (Conference Hub)',
+    type: 'room_layout',
+    x: 480,
+    y: 75,
+    roomType: 'meeting',
+    title: 'Konsol Penataan Ruangan — Conference & Strategy Hub',
+    description: 'Atur posisi furniture, putar arah 4 orientasi (0°, 90°, 180°, 270°), dan kunci layout ruangan.',
+    actionText: 'Atur Layout Ruangan',
+  },
   {
     id: 'obj_presentation_screen',
     name: 'Shared Presentation Screen',

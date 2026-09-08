@@ -12,11 +12,13 @@ import {
   StudioBridgeEvents,
   StudioRoomType,
   WorkstationMemberData,
+  RoomLayoutConfig,
 } from './types';
 import { Profile } from '@/types/database.types';
 import { NearbyDiscussionCluster } from './chat/mockChatTypes';
 import { NEARBY_DISCUSSIONS } from './chat/mockChatStore';
 import { DirectChatPokePayload } from '@/lib/studioNetwork';
+import { roomLayoutStore } from './roomLayoutStore';
 
 export interface RemotePlayerRecord {
   container: Phaser.GameObjects.Container;
@@ -99,6 +101,8 @@ export class StudioScene extends Phaser.Scene {
   private meetingSeatDataMap: Map<string, { seat: MeetingSeatData; table: InteractiveObjectDef }> = new Map();
   private currentSeatedMeetingSeat: MeetingSeatData | null = null;
   private nearbyMeetingSeat: { seat: MeetingSeatData; table: InteractiveObjectDef } | null = null;
+  private objectSprites: Map<string, Phaser.Physics.Arcade.Sprite> = new Map();
+  private handleLayoutUpdateListener?: (e: Event) => void;
 
   private interactHintContainer!: Phaser.GameObjects.Container;
   private interactHintText!: Phaser.GameObjects.Text;
@@ -562,6 +566,20 @@ export class StudioScene extends Phaser.Scene {
     // Initial broadcast
     this.emitNetworkUpdate(this.playerDirection, false);
 
+    // 8. Realtime Room Layout Sync Listener
+    this.handleLayoutUpdateListener = (e: Event) => {
+      const customEvent = e as CustomEvent<{ roomType: StudioRoomType; config: RoomLayoutConfig }>;
+      if (customEvent.detail) {
+        this.applyRoomLayout(customEvent.detail.roomType, customEvent.detail.config);
+      }
+    };
+    window.addEventListener('studio-room-layout-updated', this.handleLayoutUpdateListener);
+    this.events.once('shutdown', () => {
+      if (this.handleLayoutUpdateListener) {
+        window.removeEventListener('studio-room-layout-updated', this.handleLayoutUpdateListener);
+      }
+    });
+
     // Notify bridge that scene is fully mounted and ready to spawn remote players
     if (this.bridgeEvents.onSceneReady) {
       this.bridgeEvents.onSceneReady();
@@ -809,13 +827,27 @@ export class StudioScene extends Phaser.Scene {
       const asset = STUDIO_ASSETS[objDef.assetKey];
       const textureKey = asset.key;
 
-      const obj = this.objectsGroup.create(objDef.x, objDef.y, textureKey);
+      // Check saved room layout override
+      const savedLayout = roomLayoutStore.getRoomLayout(objDef.roomType);
+      const savedItem = savedLayout?.items?.find((it) => it.id === objDef.id);
+      const spawnX = savedItem ? savedItem.x : objDef.x;
+      const spawnY = savedItem ? savedItem.y : objDef.y;
+      const spawnRot = savedItem ? savedItem.rotation : ((objDef.rotation || 0) as number);
+
+      objDef.x = spawnX;
+      objDef.y = spawnY;
+      objDef.rotation = spawnRot;
+
+      const obj = this.objectsGroup.create(spawnX, spawnY, textureKey) as Phaser.Physics.Arcade.Sprite;
       obj.setOrigin(asset.origin.x, asset.origin.y);
+      obj.setAngle(spawnRot);
       obj.setData('objectDef', objDef);
       obj.setInteractive({ cursor: 'pointer' });
 
+      this.objectSprites.set(objDef.id, obj);
+
       // Y-sorting depth
-      obj.setDepth(objDef.y + asset.depthOffset);
+      obj.setDepth(spawnY + asset.depthOffset);
 
       // Direct click interaction
       obj.on('pointerdown', () => {
@@ -2214,5 +2246,35 @@ export class StudioScene extends Phaser.Scene {
     this.nearbyMember = member;
     this.bridgeEvents.onNearbyMemberChange?.(member);
   }
+
+  /**
+   * Applies real-time room layout repositioning and 4-direction rotation
+   */
+  public applyRoomLayout(_roomType: StudioRoomType, config: RoomLayoutConfig) {
+    if (!config?.items) return;
+
+    config.items.forEach((item) => {
+      const sprite = this.objectSprites.get(item.id);
+      const objDef = INTERACTIVE_OBJECTS.find((o) => o.id === item.id);
+
+      if (sprite) {
+        sprite.setPosition(item.x, item.y);
+        sprite.setAngle(item.rotation || 0);
+        const assetKey = objDef?.assetKey || '';
+        const asset = STUDIO_ASSETS[assetKey] || null;
+        if (asset) {
+          sprite.setDepth(item.y + asset.depthOffset);
+          applyAssetBody(sprite, asset);
+        }
+      }
+
+      if (objDef) {
+        objDef.x = item.x;
+        objDef.y = item.y;
+        objDef.rotation = item.rotation;
+      }
+    });
+  }
 }
+
 

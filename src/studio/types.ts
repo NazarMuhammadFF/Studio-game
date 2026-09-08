@@ -59,7 +59,8 @@ export type InteractionType =
   | 'team_presence'
   | 'announcement_board'
   | 'plaza_project_status'
-  | 'studio_directory';
+  | 'studio_directory'
+  | 'room_layout';
 
 export type WorkstationStatus = 'available' | 'assigned_offline' | 'assigned_active';
 
@@ -425,6 +426,35 @@ export interface InteractiveObjectDef {
   announcementData?: AnnouncementBoardData;
   plazaProjectStatusData?: PlazaProjectStatusData;
   contextBubble?: string;
+  rotation?: number; // 0 | 90 | 180 | 270
+}
+
+export type FurnitureDirection = 0 | 90 | 180 | 270;
+
+export interface RoomFurnitureItem {
+  id: string;
+  name: string;
+  type: InteractionType;
+  roomType: StudioRoomType;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation: FurnitureDirection;
+  assetKey: string;
+  title?: string;
+  description?: string;
+  isCustomizable?: boolean;
+  isTerminal?: boolean;
+}
+
+export interface RoomLayoutConfig {
+  roomId: string;
+  roomType: StudioRoomType;
+  roomName: string;
+  isLocked: boolean;
+  lastUpdated: number;
+  items: RoomFurnitureItem[];
 }
 
 export interface PlayerNetworkState {

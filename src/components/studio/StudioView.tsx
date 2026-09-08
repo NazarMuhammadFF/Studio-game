@@ -26,6 +26,7 @@ import { StudioDirectoryOverlay } from './StudioDirectoryOverlay';
 import { TeamPresenceBoardOverlay } from './TeamPresenceBoardOverlay';
 import { AnnouncementBoardOverlay } from './AnnouncementBoardOverlay';
 import { PlazaProjectStatusOverlay } from './PlazaProjectStatusOverlay';
+import { RoomLayoutOverlay } from './RoomLayoutOverlay';
 import { StudioChatDrawer } from './chat/StudioChatDrawer';
 import { NearbyDiscussionPrompt } from './chat/NearbyDiscussionPrompt';
 import { useMockChat } from '@/studio/chat/mockChatStore';
@@ -54,6 +55,9 @@ import {
 
 // Helper untuk deskripsi detail objek di panel HUD
 const getObjectDetailDescription = (obj: InteractiveObjectDef): string => {
+  if (obj.type === 'room_layout') {
+    return `Pengatur Tata Ruang Ruangan • Atur posisi furniture, putar arah 4 orientasi (0°, 90°, 180°, 270°), dan kunci layout ruangan`;
+  }
   if (obj.plazaProjectStatusData) {
     return `Milestone: ${obj.plazaProjectStatusData.milestone} • Progress Keseluruhan: ${obj.plazaProjectStatusData.overallProgress}%`;
   }
@@ -114,6 +118,9 @@ const getMemberDetailDescription = (member: WorkstationMemberData, currentRoomNa
 };
 
 const getObjectIcon = (obj: InteractiveObjectDef) => {
+  if (obj.type === 'room_layout') {
+    return <Compass className="w-5 h-5 text-sky-400" />;
+  }
   switch (obj.roomType) {
     case 'programming':
       return <Code className="w-5 h-5 text-blue-400" />;
@@ -695,6 +702,12 @@ export const StudioView: React.FC = () => {
         <PlazaProjectStatusOverlay
           object={selectedObject}
           onClose={() => setSelectedObject(null)}
+        />
+      ) : selectedObject?.type === 'room_layout' ? (
+        <RoomLayoutOverlay
+          object={selectedObject}
+          onClose={() => setSelectedObject(null)}
+          projectId={currentProject.id}
         />
       ) : selectedObject?.workstationData ? (
         <WorkstationOverlay
