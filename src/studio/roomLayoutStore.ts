@@ -96,7 +96,7 @@ export class RoomLayoutStore {
               ...defaultItem,
               x: Number.isFinite(savedItem.x) ? savedItem.x : defaultItem.x,
               y: Number.isFinite(savedItem.y) ? savedItem.y : defaultItem.y,
-              rotation: ([0, 90, 180, 270].includes(savedItem.rotation) ? savedItem.rotation : 0) as FurnitureDirection,
+              rotation: ([0, 45, 90, 135, 180, 225, 270, 315].includes(savedItem.rotation) ? savedItem.rotation : 0) as FurnitureDirection,
             };
           }
           return defaultItem;
@@ -211,8 +211,8 @@ export class RoomLayoutStore {
         if (targetRotation !== undefined) {
           nextRotation = targetRotation;
         } else {
-          // Cycle through 0 -> 90 -> 180 -> 270 -> 0
-          nextRotation = ((item.rotation + 90) % 360) as FurnitureDirection;
+          // Cycle through 0 -> 45 -> 90 -> 135 -> 180 -> 225 -> 270 -> 315 -> 0
+          nextRotation = (((item.rotation || 0) + 45) % 360) as FurnitureDirection;
         }
         return { ...item, rotation: nextRotation };
       }

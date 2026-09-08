@@ -10,6 +10,10 @@ import {
   ArrowRight,
   ArrowUp,
   ArrowLeft,
+  ArrowDownRight,
+  ArrowDownLeft,
+  ArrowUpRight,
+  ArrowUpLeft,
   X,
   Layers,
   Sparkles,
@@ -34,13 +38,18 @@ export interface RoomLayoutDockProps {
 const ROTATION_OPTIONS: Array<{
   direction: FurnitureDirection;
   label: string;
+  shortLabel: string;
   icon: React.ReactNode;
   hint: string;
 }> = [
-  { direction: 0, label: 'Depan', icon: <ArrowDown className="w-3.5 h-3.5" />, hint: 'Menghadap Depan / Bawah' },
-  { direction: 90, label: 'Kanan', icon: <ArrowRight className="w-3.5 h-3.5" />, hint: 'Menghadap Kanan' },
-  { direction: 180, label: 'Belakang', icon: <ArrowUp className="w-3.5 h-3.5" />, hint: 'Menghadap Belakang / Atas' },
-  { direction: 270, label: 'Kiri', icon: <ArrowLeft className="w-3.5 h-3.5" />, hint: 'Menghadap Kiri' },
+  { direction: 0, label: 'Depan', shortLabel: '0°', icon: <ArrowDown className="w-3.5 h-3.5" />, hint: 'Menghadap Depan / Bawah (0°)' },
+  { direction: 45, label: 'Ka-Bwh', shortLabel: '45°', icon: <ArrowDownRight className="w-3.5 h-3.5" />, hint: 'Menghadap Serong Kanan Bawah (45°)' },
+  { direction: 90, label: 'Kanan', shortLabel: '90°', icon: <ArrowRight className="w-3.5 h-3.5" />, hint: 'Menghadap Kanan (90°)' },
+  { direction: 135, label: 'Ka-Atas', shortLabel: '135°', icon: <ArrowUpRight className="w-3.5 h-3.5" />, hint: 'Menghadap Serong Kanan Atas (135°)' },
+  { direction: 180, label: 'Belakang', shortLabel: '180°', icon: <ArrowUp className="w-3.5 h-3.5" />, hint: 'Menghadap Belakang / Atas (180°)' },
+  { direction: 225, label: 'Ki-Atas', shortLabel: '225°', icon: <ArrowUpLeft className="w-3.5 h-3.5" />, hint: 'Menghadap Serong Kiri Atas (225°)' },
+  { direction: 270, label: 'Kiri', shortLabel: '270°', icon: <ArrowLeft className="w-3.5 h-3.5" />, hint: 'Menghadap Kiri (270°)' },
+  { direction: 315, label: 'Ki-Bwh', shortLabel: '315°', icon: <ArrowDownLeft className="w-3.5 h-3.5" />, hint: 'Menghadap Serong Kiri Bawah (315°)' },
 ];
 
 export const RoomLayoutDock: React.FC<RoomLayoutDockProps> = ({
@@ -248,21 +257,22 @@ export const RoomLayoutDock: React.FC<RoomLayoutDockProps> = ({
               </div>
             </div>
 
-            {/* Quick 1-Click Rotate & 4-Direction Control Buttons */}
-            <div className="flex items-center gap-2">
-              {/* Big 1-Click +90° Spin Button */}
+            {/* Quick 1-Click Rotate & 8-Direction Control Buttons */}
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Big 1-Click +45° Spin Button */}
               <button
                 type="button"
                 onClick={() => handleRotateClick()}
                 disabled={isLocked}
-                className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-sky-500 hover:bg-sky-400 text-slate-950 shadow-md shadow-sky-950/40 transition-all active:scale-95 disabled:opacity-40 disabled:pointer-events-none"
+                title="Putar 45° searah jarum jam"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-sky-500 hover:bg-sky-400 text-slate-950 shadow-md shadow-sky-950/40 transition-all active:scale-95 disabled:opacity-40 disabled:pointer-events-none"
               >
-                <RotateCw className="w-4 h-4" />
-                <span>Ganti arah</span>
+                <RotateCw className="w-3.5 h-3.5" />
+                <span>+45° Arah</span>
               </button>
 
-              {/* 4 Instant Direction Chips */}
-              <div className="flex items-center rounded-xl bg-slate-900 border border-white/10 p-0.5 gap-0.5">
+              {/* 8 Instant Direction Chips */}
+              <div className="flex flex-wrap items-center rounded-xl bg-slate-900 border border-white/10 p-0.5 gap-0.5">
                 {ROTATION_OPTIONS.map((opt) => {
                   const isActive = (selectedItem.rotation || 0) === opt.direction;
                   return (
@@ -272,10 +282,10 @@ export const RoomLayoutDock: React.FC<RoomLayoutDockProps> = ({
                       onClick={() => handleRotateClick(opt.direction)}
                       disabled={isLocked}
                       aria-pressed={isActive}
-                      title={`${opt.label}: ${opt.hint}`}
-                      className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                      title={`${opt.label} (${opt.shortLabel}): ${opt.hint}`}
+                      className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold transition-all ${
                         isActive
-                          ? 'bg-sky-500 text-slate-950 shadow-sm'
+                          ? 'bg-sky-500 text-slate-950 shadow-sm font-bold'
                           : 'text-slate-400 hover:text-white hover:bg-white/5'
                       } disabled:opacity-40 disabled:pointer-events-none`}
                     >

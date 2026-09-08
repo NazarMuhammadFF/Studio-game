@@ -170,7 +170,17 @@ export class StudioScene extends Phaser.Scene {
 
     this.player.setPosition(seatX, seatY);
     this.player.setVelocity(0, 0);
-    this.playerDirection = ({0:'up',90:'left',180:'down',270:'right'} as const)[(workstation.rotation || 0) as FurnitureDirection];
+    const dirMap: Record<number, 'up' | 'down' | 'left' | 'right'> = {
+      0: 'up',
+      45: 'up',
+      90: 'left',
+      135: 'down',
+      180: 'down',
+      225: 'down',
+      270: 'right',
+      315: 'up',
+    };
+    this.playerDirection = dirMap[(workstation.rotation || 0) as number] || 'down';
     this.player.anims?.stop();
     this.player.setTexture(`${this.playerPrefix}_${this.playerDirection}_0`);
 
@@ -2377,7 +2387,17 @@ export class StudioScene extends Phaser.Scene {
     this.selectionBoxGraphics.strokeLineShape(new Phaser.Geom.Line(left + totalW, top + totalH - markerLen, left + totalW, top + totalH));
 
     // Tag Badge above object
-    const rotText = ({0:"Depan",90:"Kanan",180:"Belakang",270:"Kiri"} as Record<number,string>)[objDef.rotation || 0];
+    const rotTextMap: Record<number, string> = {
+      0: 'Depan (0°)',
+      45: 'Serong Ka-Bwh (45°)',
+      90: 'Kanan (90°)',
+      135: 'Serong Ka-Atas (135°)',
+      180: 'Belakang (180°)',
+      225: 'Serong Ki-Atas (225°)',
+      270: 'Kiri (270°)',
+      315: 'Serong Ki-Bwh (315°)',
+    };
+    const rotText = rotTextMap[objDef.rotation || 0] || 'Depan (0°)';
     this.selectionTagText.setText(`${objDef.name} [${rotText}]`);
     const textWidth = this.selectionTagText.width;
     const tagW = textWidth + 16;
@@ -2507,14 +2527,14 @@ export class StudioScene extends Phaser.Scene {
 
     const updatedConfig = roomLayoutStore.rotateFurniture(this.layoutEditRoom, targetId, targetRotation);
     const updatedItem = updatedConfig.items.find((it) => it.id === targetId);
-    const newRot = updatedItem ? updatedItem.rotation : (((objDef.rotation || 0) + 90) % 360);
+    const newRot = updatedItem ? updatedItem.rotation : (((objDef.rotation || 0) + 45) % 360);
 
     this.applyRoomLayout(this.layoutEditRoom, updatedConfig);
     return newRot;
   }
 
   /**
-   * Applies real-time room layout repositioning and 4-direction rotation
+   * Applies real-time room layout repositioning and 8-direction rotation
    */
   public applyRoomLayout(_roomType: StudioRoomType, config: RoomLayoutConfig) {
     if (!config?.items) return;
@@ -2526,11 +2546,12 @@ export class StudioScene extends Phaser.Scene {
       if (sprite && objDef) {
         sprite.setPosition(item.x, item.y);
         objDef.rotation = item.rotation;
-        sprite.setAngle(0);
         const asset = getObjectAsset(objDef);
         if (asset) {
           sprite.setTexture(asset.key);
           sprite.setDepth(item.y + asset.depthOffset);
+          const isDedicatedFacing = asset.key.includes(`__facing_${item.rotation}`);
+          sprite.setAngle(isDedicatedFacing ? 0 : (item.rotation || 0));
           applyAssetBody(sprite, asset);
         }
       }
@@ -2559,8 +2580,18 @@ export class StudioScene extends Phaser.Scene {
           if (colleague) {
             colleague.x = item.x+relative.x; colleague.y = item.y+relative.y;
             colleague.sprite.setPosition(colleague.x,colleague.y).setDepth(colleague.y+5);
-            const facing = ({0:'up',90:'left',180:'down',270:'right'} as Record<number,string>)[item.rotation || 0];
-            colleague.sprite.setTexture(colleague.sprite.texture.key.replace(/_(up|down|left|right)_0$/, '_'+facing+'_0'));
+            const facingMap: Record<number, string> = {
+              0: 'up',
+              45: 'up',
+              90: 'left',
+              135: 'down',
+              180: 'down',
+              225: 'down',
+              270: 'right',
+              315: 'up',
+            };
+            const facing = facingMap[item.rotation || 0] || 'down';
+            colleague.sprite.setTexture(colleague.sprite.texture.key.replace(/_(up|down|left|right)_0$/, '_' + facing + '_0'));
             colleague.nameTag.setPosition(colleague.x,colleague.y-26);
           }
         }

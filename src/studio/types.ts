@@ -432,7 +432,7 @@ export interface InteractiveObjectDef {
   assetKey?: string;
 }
 
-export type FurnitureDirection = 0 | 90 | 180 | 270;
+export type FurnitureDirection = 0 | 45 | 90 | 135 | 180 | 225 | 270 | 315;
 
 export interface RoomFurnitureItem {
   id: string;
