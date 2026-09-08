@@ -21,6 +21,8 @@ export interface StudioCanvasProps {
   onObjectInteract: (object: InteractiveObjectDef) => void;
   onNearbyObjectChange?: (object: InteractiveObjectDef | null) => void;
   onNearbyMemberChange?: (member: WorkstationMemberData | null) => void;
+  onNearbyMembersListChange?: (members: WorkstationMemberData[]) => void;
+  selectedNearbyMember?: WorkstationMemberData | null;
   onMemberInspect?: (member: WorkstationMemberData) => void;
   onNearbyDiscussionChange?: (cluster: NearbyDiscussionCluster | null) => void;
   onPlayerClick: (player: PlayerNetworkState) => void;
@@ -47,6 +49,8 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
   onObjectInteract,
   onNearbyObjectChange,
   onNearbyMemberChange,
+  onNearbyMembersListChange,
+  selectedNearbyMember,
   onMemberInspect,
   onNearbyDiscussionChange,
   onPlayerClick,
@@ -149,6 +153,7 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
       onObjectInteract,
       onNearbyObjectChange,
       onNearbyMemberChange,
+      onNearbyMembersListChange,
       onMemberInspect,
       onNearbyDiscussionChange,
       onPlayerClick,
@@ -271,6 +276,13 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
       if (onDirectChatPokeSent) onDirectChatPokeSent();
     }
   }, [sceneReady, directChatPokeToSend, onDirectChatPokeSent]);
+
+  // Handle Direct Selected Nearby Member update from UI (e.g. multi-player HUD target selector)
+  useEffect(() => {
+    if (sceneReady && sceneRef.current && selectedNearbyMember !== undefined) {
+      sceneRef.current.setSelectedNearbyMember(selectedNearbyMember);
+    }
+  }, [sceneReady, selectedNearbyMember]);
 
   // Handle Input Lock (e.g., when workstation overlay or dialog is active)
   useEffect(() => {

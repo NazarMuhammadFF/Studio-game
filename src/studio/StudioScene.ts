@@ -1877,94 +1877,80 @@ export class StudioScene extends Phaser.Scene {
       }
     });
 
-    // Check closest remote live player
-    let closestRemote: RemotePlayerRecord | null = null;
-    let closestRemoteDist = 65;
+    // Check all nearby remote live players and colleagues
+    const nearbyMembersList: Array<{ member: WorkstationMemberData; dist: number }> = [];
 
     this.remotePlayers.forEach((remote) => {
       const rx = remote.container.x;
       const ry = remote.container.y;
       const dist = Phaser.Math.Distance.Between(px, py, rx, ry);
-      if (dist < closestRemoteDist) {
-        closestRemoteDist = dist;
-        closestRemote = remote;
+      if (dist <= 85) {
+        const remoteMemberData: WorkstationMemberData = {
+          name: remote.state.displayName || 'Remote Dev',
+          discipline: remote.state.discipline || 'Programmer',
+          roleTitle: `${remote.state.discipline || 'Team'} Member`,
+          status: 'In Flow',
+          currentGoal: 'Live Multiplayer Session',
+          currentTaskTitle: `Active in ${remote.state.currentRoom || 'Studio'}`,
+          progressPercentage: 100,
+          assignedUserId: remote.state.userId,
+          isAssigned: true,
+          isOnline: true,
+        };
+        nearbyMembersList.push({ member: remoteMemberData, dist });
       }
     });
 
-    if (closestRemote !== null && closestRemoteDist <= closestObjDist) {
-      const remote = closestRemote as RemotePlayerRecord;
-      const remoteMemberData: WorkstationMemberData = {
-        name: remote.state.displayName || 'Remote Dev',
-        discipline: remote.state.discipline || 'Programmer',
-        roleTitle: `${remote.state.discipline || 'Team'} Member`,
-        status: 'In Flow',
-        currentGoal: 'Live Multiplayer Session',
-        currentTaskTitle: `Active in ${remote.state.currentRoom || 'Studio'}`,
-        progressPercentage: 100,
-        assignedUserId: remote.state.userId,
-        isAssigned: true,
-        isOnline: true,
-      };
+    for (const c of this.colleagues) {
+      const dist = Phaser.Math.Distance.Between(px, py, c.x, c.y);
+      if (dist <= 65) {
+        nearbyMembersList.push({ member: c.data, dist });
+      }
+    }
 
-      if (!this.nearbyMember || this.nearbyMember.assignedUserId !== remote.state.userId) {
-        this.nearbyMember = remoteMemberData;
+    if (nearbyMembersList.length > 0) {
+      // Sort by proximity
+      nearbyMembersList.sort((a, b) => a.dist - b.dist);
+      const sortedMembers = nearbyMembersList.map((item) => item.member);
+
+      // Check if previously selected member is still in range
+      let selected = this.nearbyMember
+        ? sortedMembers.find((m) => (m.assignedUserId && m.assignedUserId === this.nearbyMember?.assignedUserId) || m.name === this.nearbyMember?.name)
+        : null;
+
+      if (!selected) {
+        selected = sortedMembers[0];
+      }
+
+      if (
+        !this.nearbyMember ||
+        (selected.assignedUserId && selected.assignedUserId !== this.nearbyMember.assignedUserId) ||
+        (!selected.assignedUserId && selected.name !== this.nearbyMember.name)
+      ) {
+        this.nearbyMember = selected;
+        this.bridgeEvents.onNearbyMemberChange?.(selected);
+      }
+
+      this.bridgeEvents.onNearbyMembersListChange?.(sortedMembers);
+
+      if (this.nearbyObject) {
         this.nearbyObject = null;
-        this.bridgeEvents.onNearbyMemberChange?.(remoteMemberData);
         this.bridgeEvents.onNearbyObjectChange?.(null);
       }
 
-      this.interactHintText.setText(`E — CHAT (${remote.state.displayName})`);
-      this.interactHintContainer.setPosition(remote.container.x, remote.container.y - 48);
-      this.interactHintContainer.setVisible(true);
-
-      this.interactPulseRing.setPosition(remote.container.x, remote.container.y);
-      this.interactPulseRing.setAlpha(0.7);
-
-      // Untuk player: tidak diperlukan bubble info ini karena sudah cukup dengan gamertag.
-      // Detail lengkap disajikan dalam panel HUD di layar.
+      // Untuk player & rekan: hilangkan prompt melayang [E] / tangan di atas kepala avatar
+      // Interaksi ditangani secara bersih dan terpadu via layer HUD di bawah layar
+      this.interactHintContainer.setVisible(false);
+      this.interactPulseRing.setAlpha(0);
       this.hideContextBubble();
       return;
     }
 
-    let closestColleague: ColleagueRecord | null = null;
-    let closestColleagueDist = 55;
-
-    for (const c of this.colleagues) {
-      const dist = Phaser.Math.Distance.Between(px, py, c.x, c.y);
-      if (dist < closestColleagueDist) {
-        closestColleagueDist = dist;
-        closestColleague = c;
-      }
-    }
-
-    // If colleague is nearby and closer, prioritize colleague interaction
-    if (closestColleague !== null && closestColleagueDist <= closestObjDist) {
-      const colleague: ColleagueRecord = closestColleague;
-      const member = colleague.data;
-      if (member !== this.nearbyMember) {
-        this.nearbyMember = member;
-        this.nearbyObject = null;
-        this.bridgeEvents.onNearbyMemberChange?.(member);
-        this.bridgeEvents.onNearbyObjectChange?.(null);
-      }
-
-      this.interactHintText.setText('E — CHAT');
-      this.interactHintContainer.setPosition(colleague.x, colleague.y - 38);
-      this.interactHintContainer.setVisible(true);
-
-      this.interactPulseRing.setPosition(colleague.x, colleague.y);
-      this.interactPulseRing.setAlpha(0.6);
-
-      // Contextual Bubble: HANYA menampilkan nama saja
-      const roomAccent = this.getRoomAccentColor(this.currentRoom.type);
-      const colleagueKey = member.assignedUserId || member.name;
-      this.showContextBubble(`colleague_${colleagueKey}`, colleague.x, colleague.y - 45, member.name, roomAccent);
-      return;
-    }
-
+    // No members nearby: reset nearby member state
     if (this.nearbyMember) {
       this.nearbyMember = null;
       this.bridgeEvents.onNearbyMemberChange?.(null);
+      this.bridgeEvents.onNearbyMembersListChange?.([]);
     }
 
     if (closestObj !== this.nearbyObject) {
@@ -2220,4 +2206,13 @@ export class StudioScene extends Phaser.Scene {
       this.emitNetworkUpdate(this.playerDirection, false);
     }
   }
+
+  /**
+   * Updates the actively targeted nearby member from HUD selector
+   */
+  public setSelectedNearbyMember(member: WorkstationMemberData | null) {
+    this.nearbyMember = member;
+    this.bridgeEvents.onNearbyMemberChange?.(member);
+  }
 }
+

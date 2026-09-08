@@ -456,6 +456,7 @@ export interface StudioBridgeEvents {
   onObjectInteract?: (object: InteractiveObjectDef) => void;
   onNearbyObjectChange?: (object: InteractiveObjectDef | null) => void;
   onNearbyMemberChange?: (member: WorkstationMemberData | PlayerNetworkState | null) => void;
+  onNearbyMembersListChange?: (members: WorkstationMemberData[]) => void;
   onMemberInspect?: (member: WorkstationMemberData | PlayerNetworkState) => void;
   onPlayerClick?: (player: PlayerNetworkState) => void;
   onWorkstationSit?: (workstation: InteractiveObjectDef) => void;

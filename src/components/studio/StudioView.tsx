@@ -150,6 +150,7 @@ export const StudioView: React.FC = () => {
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerNetworkState | null>(null);
   const [selectedMember, setSelectedMember] = useState<WorkstationMemberData | null>(null);
   const [nearbyMember, setNearbyMember] = useState<WorkstationMemberData | null>(null);
+  const [nearbyMembersList, setNearbyMembersList] = useState<WorkstationMemberData[]>([]);
   const [nearbyCluster, setNearbyCluster] = useState<NearbyDiscussionCluster | null>(null);
   const [onlineMembers, setOnlineMembers] = useState<PlayerNetworkState[]>([]);
 
@@ -269,6 +270,17 @@ export const StudioView: React.FC = () => {
         onObjectInteract={(obj) => setSelectedObject(obj)}
         onNearbyObjectChange={(obj) => setNearbyObject(obj)}
         onNearbyMemberChange={(member) => setNearbyMember(member)}
+        onNearbyMembersListChange={(list) => {
+          setNearbyMembersList(list);
+          if (list.length > 0) {
+            setNearbyMember((prev) => {
+              if (!prev) return list[0];
+              const exists = list.find((m) => (m.assignedUserId && m.assignedUserId === prev.assignedUserId) || m.name === prev.name);
+              return exists || list[0];
+            });
+          }
+        }}
+        selectedNearbyMember={nearbyMember}
         onMemberInspect={(member) => {
           const memberKey = member.assignedUserId || member.name;
           const directConv = getOrCreateDirectConversation(memberKey);
@@ -351,48 +363,89 @@ export const StudioView: React.FC = () => {
       {/* 5. Sleek Interactive Context HUD Panel (Bottom-Center) */}
       {!isSittingAtDesk && !isChatDrawerOpen && (nearbyMember || nearbyObject) && (
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 pointer-events-auto select-none animate-in fade-in slide-in-from-bottom-3 duration-200">
-          <div className="flex items-center gap-3.5 px-4 py-2.5 rounded-2xl bg-slate-900/95 backdrop-blur-xl border border-white/15 shadow-2xl shadow-slate-950/70 text-white min-w-[360px] max-w-[580px]">
+          <div className="flex flex-col rounded-2xl bg-slate-900/95 backdrop-blur-xl border border-white/15 shadow-2xl shadow-slate-950/70 text-white min-w-[360px] max-w-[620px] overflow-hidden">
             {nearbyMember ? (
               <>
-                <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 shrink-0">
-                  <Users className="w-5 h-5" />
-                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                </div>
-                <div className="flex flex-col min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-white truncate max-w-[180px]">
-                      {nearbyMember.name}
-                    </span>
-                    <span className="text-[9.5px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-semibold uppercase">
-                      {nearbyMember.roleTitle || nearbyMember.discipline}
-                    </span>
+                {/* Multi-Player Proximity Target Selector Bar: Ditampilkan jika ada lebih dari 1 pemain di sekitar */}
+                {nearbyMembersList.length > 1 && (
+                  <div className="flex flex-col border-b border-white/10 bg-slate-950/60 px-3.5 py-2">
+                    <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                      <span className="flex items-center gap-1.5 text-emerald-400">
+                        <Users className="w-3 h-3" />
+                        Pilih Target Interaksi ({nearbyMembersList.length} Pemain di Sekitar)
+                      </span>
+                      <span className="text-[9px] text-slate-400 font-normal">Klik untuk memilih</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+                      {nearbyMembersList.map((m, idx) => {
+                        const isTargetActive =
+                          (m.assignedUserId && m.assignedUserId === nearbyMember.assignedUserId) ||
+                          (!m.assignedUserId && m.name === nearbyMember.name);
+                        return (
+                          <button
+                            key={m.assignedUserId || `${m.name}_${idx}`}
+                            type="button"
+                            onClick={() => setNearbyMember(m)}
+                            className={`flex items-center gap-2 px-2.5 py-1 rounded-xl text-xs font-medium transition-all shrink-0 cursor-pointer ${
+                              isTargetActive
+                                ? 'bg-emerald-500/25 border border-emerald-400/60 text-white font-bold shadow-md shadow-emerald-950/40 ring-1 ring-emerald-400/30'
+                                : 'bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 hover:text-white'
+                            }`}
+                          >
+                            <span className={`w-2 h-2 rounded-full ${isTargetActive ? 'bg-emerald-400 animate-pulse' : 'bg-slate-400'}`} />
+                            <span className="truncate max-w-[110px]">{m.name}</span>
+                            <span className="text-[9px] px-1 py-0.2 rounded bg-white/10 text-slate-300 font-mono">
+                              {m.roleTitle || m.discipline}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                  <p className="text-[11px] text-slate-300 truncate mt-0.5" title={getMemberDetailDescription(nearbyMember, currentRoom.name)}>
-                    {getMemberDetailDescription(nearbyMember, currentRoom.name)}
-                  </p>
+                )}
+
+                {/* Target Player Detail Card */}
+                <div className="flex items-center gap-3.5 px-4 py-2.5">
+                  <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 shrink-0">
+                    <Users className="w-5 h-5" />
+                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                  </div>
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-white truncate max-w-[180px]">
+                        {nearbyMember.name}
+                      </span>
+                      <span className="text-[9.5px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-semibold uppercase">
+                        {nearbyMember.roleTitle || nearbyMember.discipline}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-300 truncate mt-0.5" title={getMemberDetailDescription(nearbyMember, currentRoom.name)}>
+                      {getMemberDetailDescription(nearbyMember, currentRoom.name)}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const memberKey = nearbyMember.assignedUserId || nearbyMember.name;
+                      const directConv = getOrCreateDirectConversation(memberKey);
+                      setActiveChatConvId(directConv.id);
+                      setIsChatDrawerOpen(true);
+                      if (nearbyMember.assignedUserId) {
+                        setDirectChatPokeToSend({
+                          targetUserId: nearbyMember.assignedUserId,
+                          targetUserName: nearbyMember.name,
+                        });
+                      }
+                    }}
+                    className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-xs shadow-lg transition-all shrink-0 cursor-pointer"
+                  >
+                    <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-white/20 rounded">E</kbd>
+                    <span>Chat Langsung</span>
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const memberKey = nearbyMember.assignedUserId || nearbyMember.name;
-                    const directConv = getOrCreateDirectConversation(memberKey);
-                    setActiveChatConvId(directConv.id);
-                    setIsChatDrawerOpen(true);
-                    if (nearbyMember.assignedUserId) {
-                      setDirectChatPokeToSend({
-                        targetUserId: nearbyMember.assignedUserId,
-                        targetUserName: nearbyMember.name,
-                      });
-                    }
-                  }}
-                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-xs shadow-lg transition-all shrink-0"
-                >
-                  <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-white/20 rounded">E</kbd>
-                  <span>Chat Langsung</span>
-                </button>
               </>
             ) : nearbyObject ? (
-              <>
+              <div className="flex items-center gap-3.5 px-4 py-2.5">
                 <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-sky-500/15 border border-sky-500/30 shrink-0">
                   {getObjectIcon(nearbyObject)}
                 </div>
@@ -418,12 +471,12 @@ export const StudioView: React.FC = () => {
                       setSelectedObject(nearbyObject);
                     }
                   }}
-                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold text-xs shadow-lg transition-all shrink-0"
+                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold text-xs shadow-lg transition-all shrink-0 cursor-pointer"
                 >
                   <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-white/20 rounded">E</kbd>
                   <span>{nearbyObject.workstationData ? 'Duduk' : 'Buka'}</span>
                 </button>
-              </>
+              </div>
             ) : null}
           </div>
         </div>
