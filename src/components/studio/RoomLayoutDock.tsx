@@ -138,7 +138,7 @@ export const RoomLayoutDock: React.FC<RoomLayoutDockProps> = ({
               <p className="text-[10px] text-slate-400">
                 {isLocked
                   ? 'Layout terkunci. Klik tombol "Buka Kunci" untuk menggeser atau mengubah arah furniture.'
-                  : 'Klik objek di studio atau di daftar bawah. Tarik objek untuk memindah • Pilih arah hadap • ESC untuk selesai.'}
+                  : 'Klik & tarik furniture untuk memindah • Ganti arah hadap • Perhatikan tanda 🚪 di pinggir ruangan agar akses pintu tetap lancar • ESC untuk selesai.'}
               </p>
             </div>
           </div>

@@ -116,6 +116,8 @@ export class StudioScene extends Phaser.Scene {
   private selectionTagContainer?: Phaser.GameObjects.Container;
   private selectionTagBg?: Phaser.GameObjects.Graphics;
   private selectionTagText?: Phaser.GameObjects.Text;
+  private doorwayIndicatorsGraphics?: Phaser.GameObjects.Graphics;
+  private doorwayBadgeContainers: Phaser.GameObjects.Container[] = [];
 
   private interactHintContainer!: Phaser.GameObjects.Container;
   private interactHintText!: Phaser.GameObjects.Text;
@@ -612,6 +614,7 @@ export class StudioScene extends Phaser.Scene {
         gameObject.setDepth(clampedY + asset.depthOffset);
       }
       this.updateSelectionBox(gameObject, objDef);
+      this.renderDoorwayIndicators(this.layoutEditRoom);
     });
 
     this.input.on('dragend', (_pointer: Phaser.Input.Pointer, gameObject: Phaser.Physics.Arcade.Sprite) => {
@@ -628,6 +631,7 @@ export class StudioScene extends Phaser.Scene {
 
       const updatedConfig = roomLayoutStore.updateFurniturePosition(this.layoutEditRoom, objDef.id, gameObject.x, gameObject.y);
       this.applyRoomLayout(this.layoutEditRoom, updatedConfig);
+      this.renderDoorwayIndicators(this.layoutEditRoom);
     });
 
     // 9. Camera Follow System
@@ -651,6 +655,9 @@ export class StudioScene extends Phaser.Scene {
       if (this.handleLayoutUpdateListener) {
         window.removeEventListener('studio-room-layout-updated', this.handleLayoutUpdateListener);
       }
+      this.doorwayIndicatorsGraphics?.destroy();
+      this.doorwayBadgeContainers.forEach((c) => c.destroy());
+      this.doorwayBadgeContainers = [];
     });
 
     // Notify bridge that scene is fully mounted and ready to spawn remote players
@@ -2484,6 +2491,9 @@ export class StudioScene extends Phaser.Scene {
       this.setSelectedFurniture(null);
     }
 
+    // Render doorway/entrance visual indicators along room perimeters
+    this.renderDoorwayIndicators(roomType);
+
     this.bridgeEvents.onLayoutEditModeChange?.(roomType, isLocked);
   }
 
@@ -2570,6 +2580,241 @@ export class StudioScene extends Phaser.Scene {
       const selectedObjDef = INTERACTIVE_OBJECTS.find((o) => o.id === this.selectedFurnitureId);
       if (selectedSprite && selectedObjDef) {
         this.updateSelectionBox(selectedSprite, selectedObjDef);
+      }
+    }
+
+    if (this.layoutEditRoom) {
+      this.renderDoorwayIndicators(this.layoutEditRoom);
+    }
+  }
+
+  /**
+   * Renders prominent in-world doorway entrance markers and clearance zones along room edges during layout editing
+   */
+  private renderDoorwayIndicators(roomType: StudioRoomType | null) {
+    if (!this.doorwayIndicatorsGraphics) {
+      this.doorwayIndicatorsGraphics = this.add.graphics().setDepth(99984);
+    }
+    this.doorwayIndicatorsGraphics.clear();
+
+    // Clean up previous doorway badge containers
+    this.doorwayBadgeContainers.forEach((c) => c.destroy());
+    this.doorwayBadgeContainers = [];
+
+    if (!roomType) return;
+
+    const room = ROOMS.find((r) => r.type === roomType);
+    if (!room) return;
+
+    const connectedDoors = DOORWAYS.filter((d) => d.fromRoom === roomType || d.toRoom === roomType);
+    const roomFriendlyNames: Record<StudioRoomType, string> = {
+      programming: 'Code Lab',
+      meeting: 'Conference Hub',
+      art: 'Art Studio',
+      design: 'Game Design',
+      lobby: 'Central Plaza',
+      audio: 'Audio Studio',
+      lounge: 'Relax Lounge',
+    };
+
+    connectedDoors.forEach((door) => {
+      const otherRoomType = door.fromRoom === roomType ? door.toRoom : door.fromRoom;
+      const otherRoomName = roomFriendlyNames[otherRoomType] || otherRoomType;
+
+      let edgeRect: { x: number; y: number; width: number; height: number };
+      let corridorRect: { x: number; y: number; width: number; height: number };
+      let badgeX = 0;
+      let badgeY = 0;
+      let directionSymbol = '◄►';
+
+      if (door.height <= 32) {
+        // Horizontal doorway (along top or bottom perimeter wall)
+        const isBottomEdge = door.y >= room.y + room.height - 36;
+        if (isBottomEdge) {
+          // Bottom wall edge
+          edgeRect = { x: door.x, y: room.y + room.height - 14, width: door.width, height: 14 };
+          corridorRect = { x: door.x, y: room.y + room.height - 64, width: door.width, height: 64 };
+          badgeX = door.x + door.width / 2;
+          badgeY = room.y + room.height - 24;
+          directionSymbol = '▲';
+        } else {
+          // Top wall edge
+          edgeRect = { x: door.x, y: room.y, width: door.width, height: 14 };
+          corridorRect = { x: door.x, y: room.y, width: door.width, height: 64 };
+          badgeX = door.x + door.width / 2;
+          badgeY = room.y + 24;
+          directionSymbol = '▼';
+        }
+      } else {
+        // Vertical doorway (along left or right perimeter wall)
+        const isRightEdge = door.x >= room.x + room.width - 36;
+        if (isRightEdge) {
+          // Right wall edge
+          edgeRect = { x: room.x + room.width - 14, y: door.y, width: 14, height: door.height };
+          corridorRect = { x: room.x + room.width - 64, y: door.y, width: 64, height: door.height };
+          badgeX = room.x + room.width - 40;
+          badgeY = door.y + door.height / 2;
+          directionSymbol = '◄';
+        } else {
+          // Left wall edge
+          edgeRect = { x: room.x, y: door.y, width: 14, height: door.height };
+          corridorRect = { x: room.x, y: door.y, width: 64, height: door.height };
+          badgeX = room.x + 40;
+          badgeY = door.y + door.height / 2;
+          directionSymbol = '►';
+        }
+      }
+
+      // Check if any furniture inside this room intersects the doorway clearance corridor
+      const isBlocked = this.isDoorwayClearanceBlocked(corridorRect);
+      const g = this.doorwayIndicatorsGraphics!;
+
+      // 1. Draw Doorway Walkway / Clearance Zone Floor Area
+      const corridorFillColor = isBlocked ? 0xef4444 : 0x0284c7;
+      const corridorFillAlpha = isBlocked ? 0.22 : 0.12;
+      const corridorStrokeColor = isBlocked ? 0xf87171 : 0x38bdf8;
+      const corridorStrokeAlpha = isBlocked ? 0.9 : 0.6;
+
+      g.fillStyle(corridorFillColor, corridorFillAlpha);
+      g.fillRoundedRect(corridorRect.x, corridorRect.y, corridorRect.width, corridorRect.height, 4);
+
+      g.lineStyle(1.5, corridorStrokeColor, corridorStrokeAlpha);
+      g.strokeRoundedRect(corridorRect.x, corridorRect.y, corridorRect.width, corridorRect.height, 4);
+
+      // Walkway pattern hatching
+      this.drawClearanceHatching(g, corridorRect, isBlocked ? 0xf87171 : 0x38bdf8, 16);
+
+      // 2. Draw Safety Hazard Striping on Wall Perimeter Threshold
+      g.fillStyle(0x090d16, 0.95);
+      g.fillRect(edgeRect.x, edgeRect.y, edgeRect.width, edgeRect.height);
+
+      this.drawDoorwayHazardStripes(
+        g,
+        edgeRect,
+        isBlocked ? 0xef4444 : 0xfacc15,
+        isBlocked ? 0xf97316 : 0x38bdf8,
+        10
+      );
+
+      g.lineStyle(2, isBlocked ? 0xef4444 : 0x38bdf8, 1);
+      g.strokeRect(edgeRect.x, edgeRect.y, edgeRect.width, edgeRect.height);
+
+      // 3. Create Doorway Pill Badge Container (depth 99986)
+      const badgeContainer = this.add.container(badgeX, badgeY).setDepth(99986);
+      const badgeBg = this.add.graphics();
+      const badgeText = this.add
+        .text(
+          0,
+          0,
+          isBlocked
+            ? `⚠️ JALUR PINTU TERHALANG!`
+            : `🚪 PINTU MASUK ${directionSymbol} ${otherRoomName}`,
+          {
+            fontSize: '9.5px',
+            fontFamily: STUDIO_FONT.family,
+            fontStyle: 'bold',
+            color: isBlocked ? '#fca5a5' : '#e0f2fe',
+            resolution: STUDIO_FONT.resolution,
+          }
+        )
+        .setOrigin(0.5, 0.5);
+
+      const bW = badgeText.width + 16;
+      const bH = 18;
+
+      badgeBg.fillStyle(isBlocked ? 0x450a0a : 0x0a101d, 0.94);
+      badgeBg.fillRoundedRect(-bW / 2, -bH / 2, bW, bH, 5);
+      badgeBg.lineStyle(1.5, isBlocked ? 0xef4444 : 0x38bdf8, 0.9);
+      badgeBg.strokeRoundedRect(-bW / 2, -bH / 2, bW, bH, 5);
+
+      badgeContainer.add([badgeBg, badgeText]);
+      this.doorwayBadgeContainers.push(badgeContainer);
+    });
+
+    // Subtle gentle pulse tween for doorway badges
+    if (this.doorwayBadgeContainers.length > 0) {
+      this.tweens.add({
+        targets: this.doorwayBadgeContainers,
+        alpha: { from: 0.88, to: 1 },
+        duration: 800,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+      });
+    }
+  }
+
+  /**
+   * Checks if any furniture inside active edit room intersects the doorway clearance corridor
+   */
+  private isDoorwayClearanceBlocked(corridorRect: { x: number; y: number; width: number; height: number }): boolean {
+    if (!this.layoutEditRoom) return false;
+    const roomObjects = INTERACTIVE_OBJECTS.filter((o) => o.roomType === this.layoutEditRoom);
+    const corridorGeom = new Phaser.Geom.Rectangle(corridorRect.x, corridorRect.y, corridorRect.width, corridorRect.height);
+
+    return roomObjects.some((obj) => {
+      const asset = getObjectAsset(obj);
+      const w = asset.width || 32;
+      const h = asset.height || 32;
+      const originX = asset.origin?.x ?? 0.5;
+      const originY = asset.origin?.y ?? 0.5;
+      const left = obj.x - w * originX;
+      const top = obj.y - h * originY;
+      const objGeom = new Phaser.Geom.Rectangle(left, top, w, h);
+      return Phaser.Geom.Intersects.RectangleToRectangle(corridorGeom, objGeom);
+    });
+  }
+
+  /**
+   * Draws 45-degree diagonal hazard stripes along doorway threshold
+   */
+  private drawDoorwayHazardStripes(
+    graphics: Phaser.GameObjects.Graphics,
+    rect: { x: number; y: number; width: number; height: number },
+    color1: number,
+    color2: number,
+    spacing: number = 10
+  ) {
+    const xStart = rect.x - rect.height;
+    const xEnd = rect.x + rect.width;
+    let toggle = false;
+
+    for (let sx = xStart; sx < xEnd + rect.height; sx += spacing) {
+      const minX = Math.max(rect.x, sx);
+      const maxX = Math.min(rect.x + rect.width, sx + rect.height);
+      if (minX < maxX) {
+        const p1x = minX;
+        const p1y = rect.y + (rect.height - (p1x - sx));
+        const p2x = maxX;
+        const p2y = rect.y + (rect.height - (p2x - sx));
+        graphics.lineStyle(2.5, toggle ? color1 : color2, 0.95);
+        graphics.strokeLineShape(new Phaser.Geom.Line(p1x, p1y, p2x, p2y));
+      }
+      toggle = !toggle;
+    }
+  }
+
+  /**
+   * Draws subtle architectural grid hatching for doorway clearance corridor
+   */
+  private drawClearanceHatching(
+    graphics: Phaser.GameObjects.Graphics,
+    rect: { x: number; y: number; width: number; height: number },
+    color: number,
+    spacing: number = 16
+  ) {
+    graphics.lineStyle(1, color, 0.22);
+    const xStart = rect.x - rect.height;
+    const xEnd = rect.x + rect.width;
+    for (let sx = xStart; sx < xEnd + rect.height; sx += spacing) {
+      const minX = Math.max(rect.x, sx);
+      const maxX = Math.min(rect.x + rect.width, sx + rect.height);
+      if (minX < maxX) {
+        const p1x = minX;
+        const p1y = rect.y + (rect.height - (p1x - sx));
+        const p2x = maxX;
+        const p2y = rect.y + (rect.height - (p2x - sx));
+        graphics.strokeLineShape(new Phaser.Geom.Line(p1x, p1y, p2x, p2y));
       }
     }
   }
