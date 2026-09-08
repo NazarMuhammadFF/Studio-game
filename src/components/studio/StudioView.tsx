@@ -228,8 +228,12 @@ export const StudioView: React.FC = () => {
   }, [incomingChatPoke]);
 
   // Lock gameplay input if any modal, overlay, or chat drawer input is active
+  React.useEffect(() => {
+    window.dispatchEvent(new CustomEvent('studio-layout-focus', { detail: !!layoutEditRoom }));
+    return () => { window.dispatchEvent(new CustomEvent('studio-layout-focus', { detail: false })); };
+  }, [layoutEditRoom]);
   const isInputLocked = Boolean(
-    selectedObject || selectedPlayer || selectedMember || isChatDrawerOpen || isExternalUiOpen
+    layoutEditRoom || selectedObject || selectedPlayer || selectedMember || isChatDrawerOpen || isExternalUiOpen
   );
 
   // Product-level modals such as Team are rendered above StudioView by AppShell.
@@ -287,6 +291,8 @@ export const StudioView: React.FC = () => {
         onZoneChange={(zone) => setCurrentZone(zone)}
         onObjectInteract={(obj) => {
           if (obj.type === 'room_layout') {
+            setIsChatDrawerOpen(false);
+            setSelectedObject(null); setSelectedPlayer(null); setSelectedMember(null);
             setLayoutEditRoom(obj.roomType);
             setIsLayoutLocked(false);
             setSelectedFurnitureId(null);
@@ -350,6 +356,7 @@ export const StudioView: React.FC = () => {
         isInputLocked={isInputLocked}
       />
 
+      {!layoutEditRoom && <>
       {/* 2. Banner Nama Ruangan di Pojok Layar: Muncul HANYA SESAAT ketika baru memasuki area ruangan */}
       {showRoomNotification && (
         <div className="absolute top-4 left-4 z-30 pointer-events-auto flex flex-col gap-1.5 animate-in fade-in slide-in-from-top-3 duration-300 select-none">
@@ -501,7 +508,13 @@ export const StudioView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    if (nearbyObject.workstationData) {
+                    if (nearbyObject.type === 'room_layout') {
+                      setIsChatDrawerOpen(false);
+                      setSelectedObject(null); setSelectedPlayer(null); setSelectedMember(null);
+                      setLayoutEditRoom(nearbyObject.roomType);
+                      setIsLayoutLocked(false);
+                      setSelectedFurnitureId(null);
+                    } else if (nearbyObject.workstationData) {
                       setSeatedWorkstationRequest(nearbyObject);
                     } else {
                       setSelectedObject(nearbyObject);
@@ -609,33 +622,6 @@ export const StudioView: React.FC = () => {
           setChatMessageToSend(text);
         }}
       />
-
-      {/* 10. Seamless In-World Room Layout Editing Dock */}
-      {layoutEditRoom && (
-        <RoomLayoutDock
-          roomType={layoutEditRoom}
-          projectId={currentProject.id}
-          isLocked={isLayoutLocked}
-          selectedFurnitureId={selectedFurnitureId}
-          onSelectFurniture={(id) => setSelectedFurnitureId(id)}
-          onRotateFurniture={(id, targetRotation) => {
-            setRotateFurnitureRequest({ furnitureId: id, targetRotation });
-          }}
-          onToggleLock={() => {
-            const nextLocked = !isLayoutLocked;
-            setIsLayoutLocked(nextLocked);
-            roomLayoutStore.toggleRoomLock(layoutEditRoom, nextLocked);
-          }}
-          onResetLayout={() => {
-            roomLayoutStore.resetRoomLayout(layoutEditRoom);
-          }}
-          onClose={() => {
-            setLayoutEditRoom(null);
-            setSelectedFurnitureId(null);
-            setIsLayoutLocked(true);
-          }}
-        />
-      )}
 
       {/* Modals & Overlays for World & Player Interaction */}
       {selectedMember && (
@@ -834,6 +820,34 @@ export const StudioView: React.FC = () => {
           </div>
         </div>
       )}
+      </>}
+      {/* 10. Seamless In-World Room Layout Editing Dock */}
+      {layoutEditRoom && (
+        <RoomLayoutDock
+          roomType={layoutEditRoom}
+          projectId={currentProject.id}
+          isLocked={isLayoutLocked}
+          selectedFurnitureId={selectedFurnitureId}
+          onSelectFurniture={(id) => setSelectedFurnitureId(id)}
+          onRotateFurniture={(id, targetRotation) => {
+            setRotateFurnitureRequest({ furnitureId: id, targetRotation });
+          }}
+          onToggleLock={() => {
+            const nextLocked = !isLayoutLocked;
+            setIsLayoutLocked(nextLocked);
+            roomLayoutStore.toggleRoomLock(layoutEditRoom, nextLocked);
+          }}
+          onResetLayout={() => {
+            roomLayoutStore.resetRoomLayout(layoutEditRoom);
+          }}
+          onClose={() => {
+            setLayoutEditRoom(null);
+            setSelectedFurnitureId(null);
+            setIsLayoutLocked(true);
+          }}
+        />
+      )}
+
     </div>
   );
 };

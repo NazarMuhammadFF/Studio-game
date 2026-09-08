@@ -3,6 +3,7 @@ import { FurnitureDirection, RoomFurnitureItem, RoomLayoutConfig, StudioRoomType
 import { getObjectAsset } from './assets/objectAppearance';
 
 const STORAGE_KEY_PREFIX = 'studio_room_layouts_v1_';
+const DEFAULT_OBJECTS = structuredClone(INTERACTIVE_OBJECTS);
 
 export interface RoomBounds {
   minX: number;
@@ -14,14 +15,14 @@ export interface RoomBounds {
 export function getRoomBounds(roomType: StudioRoomType): RoomBounds {
   const room = ROOMS.find((r) => r.type === roomType);
   if (!room) {
-    return { minX: 40, maxX: 1240, minY: 40, maxY: 840 };
+    return { minX: 32, maxX: 1248, minY: 32, maxY: 848 };
   }
-  // Safe inner padding so furniture stays completely inside the room
+  // Allow furniture to reach all the way up against the room walls (mentok ke tembok)
   return {
-    minX: room.x + 35,
-    maxX: room.x + room.width - 35,
-    minY: room.y + 35,
-    maxY: room.y + room.height - 35,
+    minX: room.x,
+    maxX: room.x + room.width,
+    minY: room.y,
+    maxY: room.y + room.height,
   };
 }
 
@@ -29,7 +30,7 @@ export function getRoomBounds(roomType: StudioRoomType): RoomBounds {
  * Builds initial default furniture items from static layout definition
  */
 function buildDefaultRoomItems(roomType: StudioRoomType): RoomFurnitureItem[] {
-  return INTERACTIVE_OBJECTS.filter((obj) => obj.roomType === roomType && obj.type !== 'room_layout').map((obj) => {
+  return DEFAULT_OBJECTS.filter((obj) => obj.roomType === roomType).map((obj) => {
     const asset = getObjectAsset(obj);
     return {
       id: obj.id,
@@ -55,6 +56,7 @@ function getStorageKey(projectId?: string): string {
 }
 
 export class RoomLayoutStore {
+  public storageError: string | null = null;
   private memoryCache: Map<StudioRoomType, RoomLayoutConfig> = new Map();
   private projectId: string = 'default';
 
@@ -92,8 +94,8 @@ export class RoomLayoutStore {
           if (savedItem) {
             return {
               ...defaultItem,
-              x: savedItem.x,
-              y: savedItem.y,
+              x: Number.isFinite(savedItem.x) ? savedItem.x : defaultItem.x,
+              y: Number.isFinite(savedItem.y) ? savedItem.y : defaultItem.y,
               rotation: ([0, 90, 180, 270].includes(savedItem.rotation) ? savedItem.rotation : 0) as FurnitureDirection,
             };
           }
@@ -129,7 +131,9 @@ export class RoomLayoutStore {
         obj[roomType] = config;
       });
       window.localStorage?.setItem(getStorageKey(this.projectId), JSON.stringify(obj));
+      this.storageError = null;
     } catch (err) {
+      this.storageError = 'Layout belum tersimpan. Penyimpanan browser tidak tersedia atau penuh.';
       console.error('[RoomLayoutStore] Failed to persist room layouts:', err);
     }
   }
@@ -168,8 +172,12 @@ export class RoomLayoutStore {
     const config = this.getRoomLayout(roomType);
     const bounds = getRoomBounds(roomType);
 
-    const clampedX = Math.round(Math.max(bounds.minX, Math.min(bounds.maxX, x)));
-    const clampedY = Math.round(Math.max(bounds.minY, Math.min(bounds.maxY, y)));
+    const item = config.items.find(item => item.id === itemId);
+    if (!item) return config;
+    const definition = DEFAULT_OBJECTS.find(obj => obj.id === itemId)!;
+    const asset = getObjectAsset({...definition, rotation:item.rotation});
+    const clampedX = Math.round(Math.max(bounds.minX+asset.width/2, Math.min(bounds.maxX-asset.width/2, x)));
+    const clampedY = Math.round(Math.max(bounds.minY+asset.height/2, Math.min(bounds.maxY-asset.height/2, y)));
 
     const updatedItems = config.items.map((item) => {
       if (item.id === itemId) {

@@ -9,11 +9,17 @@ import { AlertCircle, RefreshCw } from 'lucide-react';
 
 export const AppShell: React.FC = () => {
   const { currentWorkspace, currentProject, loading, error, refreshWorkspaceData } = useWorkspace();
+  const [editingRoom, setEditingRoom] = React.useState(false);
+  React.useEffect(() => {
+    const handle = (event: Event) => setEditingRoom(Boolean((event as CustomEvent).detail));
+    window.addEventListener('studio-layout-focus', handle);
+    return () => window.removeEventListener('studio-layout-focus', handle);
+  }, []);
 
   return (
     <div className="h-screen w-screen flex flex-col bg-studio-bg text-studio-text overflow-hidden select-none">
       {/* 1. Minimal Top Bar */}
-      <Header />
+      {!editingRoom && <Header />}
 
       {/* 2. Main Viewport */}
       <main className="flex-1 w-full h-[calc(100vh-44px)] relative overflow-hidden">

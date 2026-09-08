@@ -12,6 +12,7 @@ import {
 } from '@/studio/types';
 import { NearbyDiscussionCluster } from '@/studio/chat/mockChatTypes';
 import { mockChatStore } from '@/studio/chat/mockChatStore';
+import { roomLayoutStore } from '@/studio/roomLayoutStore';
 import { Profile } from '@/types/database.types';
 
 export interface StudioCanvasProps {
@@ -93,6 +94,7 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
 
   useEffect(() => {
     if (!containerRef.current) return;
+    roomLayoutStore.setProjectId(projectId);
     let ready = false;
     let disposed = false;
     setSceneReady(false);

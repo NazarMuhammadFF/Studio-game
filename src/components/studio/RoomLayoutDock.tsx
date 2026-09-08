@@ -37,10 +37,10 @@ const ROTATION_OPTIONS: Array<{
   icon: React.ReactNode;
   hint: string;
 }> = [
-  { direction: 0, label: '0°', icon: <ArrowDown className="w-3.5 h-3.5" />, hint: 'Menghadap Depan / Bawah' },
-  { direction: 90, label: '90°', icon: <ArrowRight className="w-3.5 h-3.5" />, hint: 'Menghadap Kanan' },
-  { direction: 180, label: '180°', icon: <ArrowUp className="w-3.5 h-3.5" />, hint: 'Menghadap Belakang / Atas' },
-  { direction: 270, label: '270°', icon: <ArrowLeft className="w-3.5 h-3.5" />, hint: 'Menghadap Kiri' },
+  { direction: 0, label: 'Depan', icon: <ArrowDown className="w-3.5 h-3.5" />, hint: 'Menghadap Depan / Bawah' },
+  { direction: 90, label: 'Kanan', icon: <ArrowRight className="w-3.5 h-3.5" />, hint: 'Menghadap Kanan' },
+  { direction: 180, label: 'Belakang', icon: <ArrowUp className="w-3.5 h-3.5" />, hint: 'Menghadap Belakang / Atas' },
+  { direction: 270, label: 'Kiri', icon: <ArrowLeft className="w-3.5 h-3.5" />, hint: 'Menghadap Kiri' },
 ];
 
 export const RoomLayoutDock: React.FC<RoomLayoutDockProps> = ({
@@ -61,7 +61,8 @@ export const RoomLayoutDock: React.FC<RoomLayoutDockProps> = ({
     return roomLayoutStore.getRoomLayout(roomType);
   });
 
-  const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
+  const [entryLayout] = useState(() => structuredClone(roomLayoutStore.getRoomLayout(roomType)));
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Sync with store updates
   useEffect(() => {
@@ -84,16 +85,18 @@ export const RoomLayoutDock: React.FC<RoomLayoutDockProps> = ({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose();
+        roomLayoutStore.toggleRoomLock(roomType, true);
+        if (!roomLayoutStore.storageError) onClose();
+        else setSaveError(roomLayoutStore.storageError);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
+  }, [onClose, roomType]);
 
   const items = layoutConfig.items || [];
   const selectedItem: RoomFurnitureItem | null =
-    items.find((it) => it.id === selectedFurnitureId) || (items.length > 0 ? items[0] : null);
+    items.find((it) => it.id === selectedFurnitureId) || null;
 
   const handleRotateClick = (targetRot?: FurnitureDirection) => {
     if (!selectedItem || isLocked) return;
@@ -102,14 +105,12 @@ export const RoomLayoutDock: React.FC<RoomLayoutDockProps> = ({
 
   const handleSaveAndClose = () => {
     roomLayoutStore.saveRoomLayout(roomType, items, true);
-    setSaveSuccess(true);
-    setTimeout(() => {
-      onClose();
-    }, 400);
+    if (roomLayoutStore.storageError) { setSaveError(roomLayoutStore.storageError); return; }
+    onClose();
   };
 
   return (
-    <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-40 pointer-events-auto select-none w-[94%] max-w-4xl animate-in slide-in-from-bottom-5 fade-in duration-300">
+    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-40 pointer-events-auto select-none w-[94%] max-w-5xl animate-in slide-in-from-bottom-5 fade-in duration-300">
       <div className="flex flex-col rounded-2xl bg-slate-900/95 backdrop-blur-2xl border border-sky-500/30 shadow-2xl shadow-slate-950/80 text-white overflow-hidden ring-1 ring-white/10">
         
         {/* 1. Header Bar: Room Info, Mode Status, Lock, Finish Button */}
@@ -136,8 +137,8 @@ export const RoomLayoutDock: React.FC<RoomLayoutDockProps> = ({
               </div>
               <p className="text-[10px] text-slate-400">
                 {isLocked
-                  ? 'Layout terkunci. Klik tombol "Buka Kunci" untuk menggeser atau memutar furniture.'
-                  : 'Klik objek di studio atau di daftar bawah. Geser (drag) untuk memindah, atau putar arah 4 orientasi.'}
+                  ? 'Layout terkunci. Klik tombol "Buka Kunci" untuk menggeser atau mengubah arah furniture.'
+                  : 'Klik objek di studio atau di daftar bawah. Tarik objek untuk memindah • Pilih arah hadap • ESC untuk selesai.'}
               </p>
             </div>
           </div>
@@ -173,12 +174,12 @@ export const RoomLayoutDock: React.FC<RoomLayoutDockProps> = ({
               className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-md shadow-emerald-950/40 transition-all active:scale-95 hover:scale-105"
             >
               <Check className="w-4 h-4" />
-              <span>{saveSuccess ? 'Tersimpan!' : 'Selesai & Kunci'}</span>
+              <span>Selesai</span>
             </button>
 
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleSaveAndClose}
               title="Tutup Panel (ESC)"
               className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
             >
@@ -187,6 +188,10 @@ export const RoomLayoutDock: React.FC<RoomLayoutDockProps> = ({
           </div>
         </div>
 
+        <div className="flex items-center justify-between px-4 py-1 text-[10px] text-slate-400">
+          <span>{saveError || roomLayoutStore.storageError || 'Tersimpan otomatis di browser ini • Posisi mengikuti grid halus'}</span>
+          <button type="button" className="text-amber-300 hover:underline" onClick={() => {roomLayoutStore.saveRoomLayout(roomType, entryLayout.items, entryLayout.isLocked); if (!roomLayoutStore.storageError) onClose(); else setSaveError(roomLayoutStore.storageError);}}>Batalkan perubahan sesi ini</button>
+        </div>
         {/* 2. Furniture Carousel / Item Selection Strip */}
         <div className="flex items-center gap-1.5 px-4 py-2 bg-slate-900/90 border-b border-white/5 overflow-x-auto scrollbar-thin scrollbar-thumb-white/20">
           <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 shrink-0 mr-1">
@@ -213,7 +218,7 @@ export const RoomLayoutDock: React.FC<RoomLayoutDockProps> = ({
                     isSelected ? 'bg-sky-400/30 text-sky-200' : 'bg-white/10 text-slate-400'
                   }`}
                 >
-                  {item.rotation || 0}°
+                  {ROTATION_OPTIONS.find(o => o.direction === item.rotation)?.label}
                 </span>
               </button>
             );
@@ -238,7 +243,7 @@ export const RoomLayoutDock: React.FC<RoomLayoutDockProps> = ({
                   </span>
                 </div>
                 <p className="text-[10.5px] text-slate-400 mt-0.5">
-                  Orientasi saat ini: <span className="text-sky-300 font-semibold">{selectedItem.rotation || 0}° ({ROTATION_OPTIONS.find((r) => r.direction === (selectedItem.rotation || 0))?.hint})</span>
+                  Orientasi saat ini: <span className="text-sky-300 font-semibold">{ROTATION_OPTIONS.find((r) => r.direction === (selectedItem.rotation || 0))?.hint}</span>
                 </p>
               </div>
             </div>
@@ -253,7 +258,7 @@ export const RoomLayoutDock: React.FC<RoomLayoutDockProps> = ({
                 className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-sky-500 hover:bg-sky-400 text-slate-950 shadow-md shadow-sky-950/40 transition-all active:scale-95 disabled:opacity-40 disabled:pointer-events-none"
               >
                 <RotateCw className="w-4 h-4" />
-                <span>Putar +90°</span>
+                <span>Ganti arah</span>
               </button>
 
               {/* 4 Instant Direction Chips */}
@@ -266,6 +271,7 @@ export const RoomLayoutDock: React.FC<RoomLayoutDockProps> = ({
                       type="button"
                       onClick={() => handleRotateClick(opt.direction)}
                       disabled={isLocked}
+                      aria-pressed={isActive}
                       title={`${opt.label}: ${opt.hint}`}
                       className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
                         isActive

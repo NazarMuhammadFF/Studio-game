@@ -2,7 +2,7 @@ import * as Phaser from 'phaser';
 import { loadStudioAssets, STUDIO_ASSETS, applyAssetBody } from './assets/registry';
 import { createAvatarTextures, AVATAR_SPEC } from './assets/characters/avatar';
 import { getColleaguePalette } from './assets/characters/variants';
-import { WORLD_WIDTH, WORLD_HEIGHT, DOORWAYS, ROOMS, INTERACTIVE_OBJECTS, SHARED_DECORATIONS } from './layout';
+import { WORLD_WIDTH, WORLD_HEIGHT, DOORWAYS, ROOMS, INTERACTIVE_OBJECTS } from './layout';
 export { WORLD_WIDTH, WORLD_HEIGHT, DOORWAYS, ROOMS, INTERACTIVE_OBJECTS } from './layout';
 import {
   InteractiveObjectDef,
@@ -19,7 +19,7 @@ import { Profile } from '@/types/database.types';
 import { NearbyDiscussionCluster } from './chat/mockChatTypes';
 import { NEARBY_DISCUSSIONS } from './chat/mockChatStore';
 import { DirectChatPokePayload } from '@/lib/studioNetwork';
-import { getRoomBounds, roomLayoutStore } from './roomLayoutStore';
+import { roomLayoutStore } from './roomLayoutStore';
 import { getObjectAsset } from './assets/objectAppearance';
 
 export interface RemotePlayerRecord {
@@ -60,7 +60,9 @@ export const STUDIO_FONT = {
   resolution: 2,
 };
 
+const FURNITURE_DEFAULTS = structuredClone(INTERACTIVE_OBJECTS);
 export class StudioScene extends Phaser.Scene {
+  private furnitureChairs = new Map<string, Array<{sprite: Phaser.GameObjects.Image; x: number; y: number}>>();
   private userProfile: Profile = {
     id: 'local_player',
     username: 'developer',
@@ -105,6 +107,8 @@ export class StudioScene extends Phaser.Scene {
   private nearbyMeetingSeat: { seat: MeetingSeatData; table: InteractiveObjectDef } | null = null;
   private objectSprites: Map<string, Phaser.Physics.Arcade.Sprite> = new Map();
   private handleLayoutUpdateListener?: (e: Event) => void;
+  private layoutFocusShade?: Phaser.GameObjects.Graphics;
+  private layoutCameraZoom = 1.15;
   private layoutEditRoom: StudioRoomType | null = null;
   private isLayoutLocked: boolean = true;
   private selectedFurnitureId: string | null = null;
@@ -139,7 +143,7 @@ export class StudioScene extends Phaser.Scene {
   public setInputLocked(locked: boolean) {
     this.isInputLocked = locked;
     if (this.input) {
-      this.input.enabled = !locked;
+      this.input.enabled = !locked || !!this.layoutEditRoom;
     }
     if (locked) {
       if (this.player && this.player.body) {
@@ -161,13 +165,13 @@ export class StudioScene extends Phaser.Scene {
   public sitAtWorkstation(workstation: InteractiveObjectDef) {
     this.currentSeatedWorkstation = workstation;
     const seatX = workstation.x + (workstation.workstationData?.seatOffset?.x || 0);
-    const seatY = workstation.y + (workstation.workstationData?.seatOffset?.y || 19);
+    const seatY = workstation.y + (workstation.workstationData?.seatOffset?.y ?? 19);
 
     this.player.setPosition(seatX, seatY);
     this.player.setVelocity(0, 0);
-    this.playerDirection = 'up';
+    this.playerDirection = ({0:'up',90:'left',180:'down',270:'right'} as const)[(workstation.rotation || 0) as FurnitureDirection];
     this.player.anims?.stop();
-    this.player.setTexture(`${this.playerPrefix}_up_0`);
+    this.player.setTexture(`${this.playerPrefix}_${this.playerDirection}_0`);
 
     if (this.bridgeEvents.onWorkstationSit) {
       this.bridgeEvents.onWorkstationSit(workstation);
@@ -505,6 +509,7 @@ export class StudioScene extends Phaser.Scene {
     this.buildWalls();
     this.spawnInteractiveObjects();
     this.spawnPresentColleagues();
+    ROOMS.forEach(room => this.applyRoomLayout(room.type, roomLayoutStore.getRoomLayout(room.type)));
 
     // 3. Create Controllable Player Avatar with 4-direction animations
     this.createLocalPlayer();
@@ -573,7 +578,7 @@ export class StudioScene extends Phaser.Scene {
     this.input.on('dragstart', (_pointer: Phaser.Input.Pointer, gameObject: Phaser.Physics.Arcade.Sprite) => {
       if (this.isLayoutLocked || !this.layoutEditRoom) return;
       const objDef = gameObject.getData('objectDef') as InteractiveObjectDef;
-      if (!objDef || objDef.roomType !== this.layoutEditRoom || objDef.type === 'room_layout') return;
+      if (!objDef || objDef.roomType !== this.layoutEditRoom) return;
       gameObject.setAlpha(0.8);
       this.setSelectedFurniture(objDef.id);
     });
@@ -581,17 +586,28 @@ export class StudioScene extends Phaser.Scene {
     this.input.on('drag', (_pointer: Phaser.Input.Pointer, gameObject: Phaser.Physics.Arcade.Sprite, dragX: number, dragY: number) => {
       if (this.isLayoutLocked || !this.layoutEditRoom) return;
       const objDef = gameObject.getData('objectDef') as InteractiveObjectDef;
-      if (!objDef || objDef.roomType !== this.layoutEditRoom || objDef.type === 'room_layout') return;
+      if (!objDef || objDef.roomType !== this.layoutEditRoom) return;
 
-      const bounds = getRoomBounds(this.layoutEditRoom);
-      const clampedX = Math.round(Math.max(bounds.minX, Math.min(bounds.maxX, dragX)));
-      const clampedY = Math.round(Math.max(bounds.minY, Math.min(bounds.maxY, dragY)));
+      const room = ROOMS.find((r) => r.type === this.layoutEditRoom);
+      if (!room) return;
+
+      const asset = getObjectAsset(objDef);
+      const halfW = (asset.width ? asset.width / 2 : 16);
+      const halfH = (asset.height ? asset.height / 2 : 16);
+
+      // Allow furniture to touch the wall edge directly (mentok ke tembok)
+      const minX = room.x + halfW;
+      const maxX = room.x + room.width - halfW;
+      const minY = room.y + halfH;
+      const maxY = room.y + room.height - halfH;
+
+      const clampedX = Math.round(Math.max(minX, Math.min(maxX, dragX)));
+      const clampedY = Math.round(Math.max(minY, Math.min(maxY, dragY)));
 
       gameObject.setPosition(clampedX, clampedY);
       objDef.x = clampedX;
       objDef.y = clampedY;
 
-      const asset = getObjectAsset(objDef);
       if (asset) {
         gameObject.setDepth(clampedY + asset.depthOffset);
       }
@@ -601,7 +617,7 @@ export class StudioScene extends Phaser.Scene {
     this.input.on('dragend', (_pointer: Phaser.Input.Pointer, gameObject: Phaser.Physics.Arcade.Sprite) => {
       if (this.isLayoutLocked || !this.layoutEditRoom) return;
       const objDef = gameObject.getData('objectDef') as InteractiveObjectDef;
-      if (!objDef || objDef.roomType !== this.layoutEditRoom || objDef.type === 'room_layout') return;
+      if (!objDef || objDef.roomType !== this.layoutEditRoom) return;
 
       gameObject.setAlpha(1);
 
@@ -610,7 +626,8 @@ export class StudioScene extends Phaser.Scene {
         applyAssetBody(gameObject, asset);
       }
 
-      roomLayoutStore.updateFurniturePosition(this.layoutEditRoom, objDef.id, gameObject.x, gameObject.y);
+      const updatedConfig = roomLayoutStore.updateFurniturePosition(this.layoutEditRoom, objDef.id, gameObject.x, gameObject.y);
+      this.applyRoomLayout(this.layoutEditRoom, updatedConfig);
     });
 
     // 9. Camera Follow System
@@ -880,9 +897,6 @@ export class StudioScene extends Phaser.Scene {
 
   private spawnInteractiveObjects() {
     INTERACTIVE_OBJECTS.forEach((objDef) => {
-      const asset = getObjectAsset(objDef);
-      const textureKey = asset.key;
-
       // Check saved room layout override
       const savedLayout = roomLayoutStore.getRoomLayout(objDef.roomType);
       const savedItem = savedLayout?.items?.find((it) => it.id === objDef.id);
@@ -894,9 +908,10 @@ export class StudioScene extends Phaser.Scene {
       objDef.y = spawnY;
       objDef.rotation = spawnRot;
 
-      const obj = this.objectsGroup.create(spawnX, spawnY, textureKey) as Phaser.Physics.Arcade.Sprite;
+      const asset = getObjectAsset(objDef);
+      const obj = this.objectsGroup.create(spawnX, spawnY, asset.key) as Phaser.Physics.Arcade.Sprite;
       obj.setOrigin(asset.origin.x, asset.origin.y);
-      obj.setAngle(spawnRot);
+      obj.setAngle(0);
       obj.setData('objectDef', objDef);
       obj.setInteractive({ cursor: 'pointer' });
 
@@ -907,11 +922,11 @@ export class StudioScene extends Phaser.Scene {
 
       // Direct click interaction
       obj.on('pointerdown', () => {
-        if (this.layoutEditRoom && !this.isLayoutLocked) {
-          if (objDef.roomType === this.layoutEditRoom && objDef.type !== 'room_layout') {
+        if (this.layoutEditRoom) {
+          if (objDef.roomType === this.layoutEditRoom && !this.isLayoutLocked) {
             this.setSelectedFurniture(objDef.id);
-            return;
           }
+          return;
         }
         this.triggerInteraction(objDef);
       });
@@ -956,34 +971,36 @@ export class StudioScene extends Phaser.Scene {
 
             const tagBg = this.add.graphics();
             tagBg.fillStyle(0x0a101d, 0.9);
-            tagBg.lineStyle(1, 0xd97706, 0.7);
-            tagBg.fillRoundedRect(-txt.width / 2 - 6, -9, txt.width + 12, 18, 4);
-            tagBg.strokeRoundedRect(-txt.width / 2 - 6, -9, txt.width + 12, 18, 4);
+            tagBg.fillRoundedRect(-txt.width / 2 - 4, -8, txt.width + 8, 16, 4);
+            tagBg.lineStyle(1, 0xfef08a, 0.5);
+            tagBg.strokeRoundedRect(-txt.width / 2 - 4, -8, txt.width + 8, 16, 4);
 
             occupantTag.add([tagBg, txt]);
+            chair.setData('nametag', occupantTag);
           }
         });
       }
 
-      // Subtle permanent nameplate for assigned / available workstations
-      if (objDef.workstationData && !objDef.workstationData.isPresentInRoom) {
+      // Floating nameplate badge for workstations
+      if (objDef.workstationData) {
         const ws = objDef.workstationData;
-        const plateY = objDef.y - objDef.height / 2 - 8;
-        const plate = this.add.container(objDef.x, plateY);
-        plate.setDepth(objDef.y + 1);
+        const plate = this.add.container(objDef.x, objDef.y - objDef.height / 2 - 8);
+        plate.setDepth(2000);
 
-        let statusDotColor = 0x38bdf8;
-        let plateText = 'AVAILABLE';
-        let strokeColor = 0x38bdf8;
+        let plateText = ws.name;
+        let statusDotColor = 0x94a3b8;
+        let strokeColor = 0x334155;
 
-        if (objDef.workstationStatus === 'available') {
-          plateText = 'AVAILABLE';
-          statusDotColor = 0x38bdf8;
-          strokeColor = 0x38bdf8;
-        } else if (objDef.workstationStatus === 'assigned_offline') {
-          plateText = `${ws.name} [OFF]`;
-          statusDotColor = 0xf59e0b;
-          strokeColor = 0xf59e0b;
+        if (ws.isAssigned) {
+          if (ws.isOnline) {
+            statusDotColor = 0x10b981;
+            strokeColor = 0x10b981;
+            plateText = `${ws.name} • ${ws.status}`;
+          } else {
+            statusDotColor = 0x94a3b8;
+            strokeColor = 0x64748b;
+            plateText = `${ws.name} (Offline)`;
+          }
         } else {
           plateText = ws.name;
           statusDotColor = 0x10b981;
@@ -1014,6 +1031,7 @@ export class StudioScene extends Phaser.Scene {
         dot.fillCircle(-plateW / 2 + 7, 0, 3);
 
         plate.add([plateBg, dot, txt]);
+        obj.setData('nameplate', plate);
       }
 
       // Small floating hover badge on pointerover
@@ -1031,7 +1049,8 @@ export class StudioScene extends Phaser.Scene {
         .setAlpha(0)
         .setDepth(2000);
 
-      obj.on('pointerover', () => hoverBadge.setAlpha(1));
+      obj.setData('hoverBadge', hoverBadge);
+      obj.on('pointerover', () => { if (!this.layoutEditRoom) hoverBadge.setAlpha(1); });
       obj.on('pointerout', () => hoverBadge.setAlpha(0));
     });
 
@@ -1070,39 +1089,13 @@ export class StudioScene extends Phaser.Scene {
       const chair = this.add.image(c.x, c.y, STUDIO_ASSETS.obj_chair.key);
       chair.setOrigin(0.5, 0.5);
       chair.setDepth(c.y);
-    });
-
-    SHARED_DECORATIONS.forEach(item => {
-      const sprite = this.objectsGroup.create(item.x, item.y, STUDIO_ASSETS[item.assetKey].key);
-      applyAssetBody(sprite, STUDIO_ASSETS[item.assetKey]);
-    });
-
-    // Potted plants and greenery for studio life
-    const plantCoords = [
-      // Central Plaza Pillars / Greenery
-      { x: 470, y: 310 },
-      { x: 810, y: 310 },
-      { x: 470, y: 810 },
-      { x: 810, y: 810 },
-      // Studio Perimeter Corners
-      { x: 55, y: 55 },
-      { x: 1225, y: 55 },
-      { x: 55, y: 825 },
-      { x: 1225, y: 825 },
-      // Lounge Corners
-      { x: 470, y: 55 },
-      { x: 810, y: 55 },
-      // Game Design Bay Greenery
-      { x: 55, y: 480 },
-      { x: 385, y: 820 },
-      // Audio Studio Greenery
-      { x: 890, y: 480 },
-      { x: 1220, y: 820 },
-    ];
-
-    plantCoords.forEach((p) => {
-      const plant = this.objectsGroup.create(p.x, p.y, STUDIO_ASSETS.obj_plant.key);
-      applyAssetBody(plant, STUDIO_ASSETS.obj_plant);
+      const parent = FURNITURE_DEFAULTS.filter(o => o.workstationData && Math.abs(o.x-c.x)<5 && Math.abs(o.y-c.y)<45)
+        .sort((a,b)=>Math.abs(a.y-c.y)-Math.abs(b.y-c.y))[0];
+      if (parent) {
+        const list = this.furnitureChairs.get(parent.id) || [];
+        list.push({sprite:chair,x:c.x-parent.x,y:c.y-parent.y});
+        this.furnitureChairs.set(parent.id,list);
+      }
     });
   }
 
@@ -1117,7 +1110,7 @@ export class StudioScene extends Phaser.Scene {
       if (objDef.workstationData && objDef.workstationData.isPresentInRoom) {
         const ws = objDef.workstationData;
         const seatX = objDef.x + (ws.seatOffset?.x || 0);
-        const seatY = objDef.y + (ws.seatOffset?.y || 19);
+        const seatY = objDef.y + (ws.seatOffset?.y ?? 19);
 
         const { shirtColor, skinColor, hairColor } = getColleaguePalette(ws.name);
 
@@ -1720,7 +1713,7 @@ export class StudioScene extends Phaser.Scene {
   public update(_time: number, _delta: number) {
     if (!this.player || !this.player.body) return;
 
-    if (this.isInputLocked || (this.layoutEditRoom && !this.isLayoutLocked)) {
+    if (this.isInputLocked || this.layoutEditRoom) {
       this.player.setVelocity(0, 0);
       this.player.play(`${this.playerPrefix}_idle_${this.playerDirection}`, true);
       this.player.setDepth(this.player.y + (AVATAR_SPEC.height * (1 - AVATAR_SPEC.origin.y)));
@@ -1728,6 +1721,7 @@ export class StudioScene extends Phaser.Scene {
 
       // Keep interpolating remote players
       this.updateRemotePlayers();
+      if (this.layoutEditRoom) this.remotePlayers.forEach(remote => remote.nameTag.setVisible(false));
       return;
     }
 
@@ -1748,11 +1742,11 @@ export class StudioScene extends Phaser.Scene {
         this.leaveWorkstation();
       } else {
         this.player.setVelocity(0, 0);
-        this.player.setTexture(`${this.playerPrefix}_up_0`);
+        this.player.setTexture(`${this.playerPrefix}_${this.playerDirection}_0`);
         this.player.setDepth(this.player.y + (AVATAR_SPEC.height * (1 - AVATAR_SPEC.origin.y)));
         this.playerNameTag.setPosition(this.player.x, this.player.y - 28);
         this.updateRemotePlayers();
-        this.emitNetworkUpdate('up', false);
+        this.emitNetworkUpdate(this.playerDirection, false);
         return;
       }
     }
@@ -2346,8 +2340,8 @@ export class StudioScene extends Phaser.Scene {
     }
 
     const asset = getObjectAsset(objDef);
-    const w = (objDef.width && objDef.width > 0 ? objDef.width : asset.width) || 48;
-    const h = (objDef.height && objDef.height > 0 ? objDef.height : asset.height) || 48;
+    const w = asset.width;
+    const h = asset.height;
     const originX = asset.origin?.x ?? 0.5;
     const originY = asset.origin?.y ?? 0.5;
 
@@ -2379,7 +2373,7 @@ export class StudioScene extends Phaser.Scene {
     this.selectionBoxGraphics.strokeLineShape(new Phaser.Geom.Line(left + totalW, top + totalH - markerLen, left + totalW, top + totalH));
 
     // Tag Badge above object
-    const rotText = `${objDef.rotation || 0}°`;
+    const rotText = ({0:"Depan",90:"Kanan",180:"Belakang",270:"Kiri"} as Record<number,string>)[objDef.rotation || 0];
     this.selectionTagText.setText(`${objDef.name} [${rotText}]`);
     const textWidth = this.selectionTagText.width;
     const tagW = textWidth + 16;
@@ -2422,15 +2416,40 @@ export class StudioScene extends Phaser.Scene {
    * Enters or exits live in-world room layout editing mode
    */
   public setRoomLayoutEditMode(roomType: StudioRoomType | null, isLocked: boolean = false) {
+    const entering = !!roomType && !this.layoutEditRoom;
+    if (entering) this.layoutCameraZoom = this.cameras.main.zoom;
     this.layoutEditRoom = roomType;
+    this.input.enabled = !!roomType || !this.isInputLocked;
+    this.layoutFocusShade?.destroy();
+    this.layoutFocusShade = undefined;
+    if (roomType) {
+      const room = ROOMS.find(r => r.type === roomType)!;
+      const shade = this.add.graphics().setDepth(99980);
+      shade.fillStyle(0x030712, .84);
+      shade.fillRect(-WORLD_WIDTH, -WORLD_HEIGHT, WORLD_WIDTH * 3, WORLD_HEIGHT + room.y);
+      shade.fillRect(-WORLD_WIDTH, room.y + room.height, WORLD_WIDTH * 3, WORLD_HEIGHT * 2);
+      shade.fillRect(-WORLD_WIDTH, room.y, WORLD_WIDTH + room.x, room.height);
+      shade.fillRect(room.x + room.width, room.y, WORLD_WIDTH * 2, room.height);
+      shade.lineStyle(2, 0x38bdf8, .8);
+      shade.strokeRect(room.x, room.y, room.width, room.height);
+      this.layoutFocusShade = shade;
+      this.player.body?.stop();
+    }
     this.isLayoutLocked = isLocked;
+    if (this.selectedFurnitureId) this.updateSelectionBox(this.objectSprites.get(this.selectedFurnitureId), INTERACTIVE_OBJECTS.find(o => o.id === this.selectedFurnitureId));
+    this.player.setAlpha(roomType ? .2 : 1);
+    this.playerNameTag.setVisible(!roomType);
+    this.colleagues.forEach(c => { c.sprite.setAlpha(roomType ? .2 : 1); c.nameTag.setVisible(!roomType); });
+    this.remotePlayers.forEach(c => { c.container.setAlpha(roomType ? .2 : 1); c.nameTag.setVisible(!roomType); });
 
     // Update draggability of sprites in this room
     this.objectSprites.forEach((sprite, id) => {
       const objDef = INTERACTIVE_OBJECTS.find((o) => o.id === id);
       if (!objDef) return;
+      sprite.getData('hoverBadge')?.setAlpha(0);
+      sprite.getData('nameplate')?.setVisible(!roomType);
 
-      if (roomType && objDef.roomType === roomType && objDef.type !== 'room_layout' && !isLocked) {
+      if (roomType && objDef.roomType === roomType && !isLocked) {
         this.input.setDraggable(sprite, true);
       } else {
         this.input.setDraggable(sprite, false);
@@ -2444,18 +2463,24 @@ export class StudioScene extends Phaser.Scene {
         const centerX = targetRoom.x + targetRoom.width / 2;
         const centerY = targetRoom.y + targetRoom.height / 2;
         this.cameras.main.stopFollow();
-        this.cameras.main.pan(centerX, centerY, 400, 'Cubic.easeOut');
-        this.cameras.main.zoomTo(1.2, 400);
+        const camera = this.cameras.main;
+        camera.panEffect.reset(); camera.zoomEffect.reset();
+        // Reserve the bottom toolbar area while fitting the entire room.
+        const zoom = Math.min(2.2, (camera.width - 80) / targetRoom.width, (camera.height - 300) / targetRoom.height);
+        camera.removeBounds();
+        camera.setZoom(zoom);
+        camera.centerOn(centerX, centerY + 125 / zoom);
       }
       // Auto-select first furniture if none selected
-      const roomItems = INTERACTIVE_OBJECTS.filter((o) => o.roomType === roomType && o.type !== 'room_layout');
+      const roomItems = INTERACTIVE_OBJECTS.filter((o) => o.roomType === roomType);
       if (roomItems.length > 0 && !this.selectedFurnitureId) {
         this.setSelectedFurniture(roomItems[0].id);
       }
     } else {
       // Return camera to follow player avatar
       this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
-      this.cameras.main.zoomTo(1.15, 300);
+      this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+      this.cameras.main.setZoom(this.layoutCameraZoom);
       this.setSelectedFurniture(null);
     }
 
@@ -2467,7 +2492,7 @@ export class StudioScene extends Phaser.Scene {
    */
   public rotateSelectedFurniture(furnitureId?: string, targetRotation?: FurnitureDirection): number {
     const targetId = furnitureId || this.selectedFurnitureId;
-    if (!targetId || !this.layoutEditRoom) return 0;
+    if (!targetId || !this.layoutEditRoom || this.isLayoutLocked) return 0;
 
     const sprite = this.objectSprites.get(targetId);
     const objDef = INTERACTIVE_OBJECTS.find((o) => o.id === targetId);
@@ -2477,30 +2502,7 @@ export class StudioScene extends Phaser.Scene {
     const updatedItem = updatedConfig.items.find((it) => it.id === targetId);
     const newRot = updatedItem ? updatedItem.rotation : (((objDef.rotation || 0) + 90) % 360);
 
-    objDef.rotation = newRot;
-    sprite.setAngle(newRot);
-
-    const asset = getObjectAsset(objDef);
-    if (asset) {
-      applyAssetBody(sprite, asset);
-    }
-
-    // Tactile scale pop bounce animation
-    this.tweens.add({
-      targets: sprite,
-      scaleX: 1.15,
-      scaleY: 1.15,
-      duration: 90,
-      yoyo: true,
-      ease: 'Back.easeOut',
-      onUpdate: () => {
-        this.updateSelectionBox(sprite, objDef);
-      },
-      onComplete: () => {
-        this.updateSelectionBox(sprite, objDef);
-      },
-    });
-
+    this.applyRoomLayout(this.layoutEditRoom, updatedConfig);
     return newRot;
   }
 
@@ -2516,15 +2518,47 @@ export class StudioScene extends Phaser.Scene {
 
       if (sprite && objDef) {
         sprite.setPosition(item.x, item.y);
-        sprite.setAngle(item.rotation || 0);
+        objDef.rotation = item.rotation;
+        sprite.setAngle(0);
         const asset = getObjectAsset(objDef);
         if (asset) {
+          sprite.setTexture(asset.key);
           sprite.setDepth(item.y + asset.depthOffset);
           applyAssetBody(sprite, asset);
         }
       }
 
       if (objDef) {
+        const baseline = FURNITURE_DEFAULTS.find(o => o.id === objDef.id)!;
+        const radians = -(item.rotation || 0) * Math.PI / 180;
+        const offset = (x: number, y: number) => ({x: Math.round(x*Math.cos(radians)-y*Math.sin(radians)), y: Math.round(x*Math.sin(radians)+y*Math.cos(radians))});
+        objDef.meetingSeats?.forEach(seat => {
+          const original = baseline.meetingSeats?.find(s => s.id === seat.id);
+          if (!original) return;
+          const relative = offset(original.x-baseline.x, original.y-baseline.y);
+          seat.x = item.x + relative.x; seat.y = item.y + relative.y;
+          const chair = this.meetingSeatSprites.get(seat.id);
+          chair?.setPosition(seat.x, seat.y).setDepth(seat.y + 9);
+          chair?.getData('nametag')?.setPosition(seat.x, seat.y - 18).setVisible(!this.layoutEditRoom);
+        });
+        this.furnitureChairs.get(item.id)?.forEach(chair => {
+          const relative=offset(chair.x,chair.y);
+          chair.sprite.setPosition(item.x+relative.x,item.y+relative.y).setDepth(item.y+relative.y);
+        });
+        if (objDef.workstationData && baseline.workstationData) {
+          const relative = offset(baseline.workstationData.seatOffset?.x || 0, baseline.workstationData.seatOffset?.y ?? 19);
+          objDef.workstationData.seatOffset = relative;
+          const colleague = this.colleagues.find(c => c.data === objDef.workstationData);
+          if (colleague) {
+            colleague.x = item.x+relative.x; colleague.y = item.y+relative.y;
+            colleague.sprite.setPosition(colleague.x,colleague.y).setDepth(colleague.y+5);
+            const facing = ({0:'up',90:'left',180:'down',270:'right'} as Record<number,string>)[item.rotation || 0];
+            colleague.sprite.setTexture(colleague.sprite.texture.key.replace(/_(up|down|left|right)_0$/, '_'+facing+'_0'));
+            colleague.nameTag.setPosition(colleague.x,colleague.y-26);
+          }
+        }
+        sprite?.getData('hoverBadge')?.setPosition(item.x, item.y - getObjectAsset(objDef).height / 2 - 8);
+        sprite?.getData('nameplate')?.setPosition(item.x, item.y - getObjectAsset(objDef).height / 2 - 8);
         objDef.x = item.x;
         objDef.y = item.y;
         objDef.rotation = item.rotation;
@@ -2540,5 +2574,3 @@ export class StudioScene extends Phaser.Scene {
     }
   }
 }
-
-

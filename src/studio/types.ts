@@ -60,7 +60,9 @@ export type InteractionType =
   | 'announcement_board'
   | 'plaza_project_status'
   | 'studio_directory'
-  | 'room_layout';
+  | 'room_layout'
+  | 'decoration'
+  | 'plant';
 
 export type WorkstationStatus = 'available' | 'assigned_offline' | 'assigned_active';
 

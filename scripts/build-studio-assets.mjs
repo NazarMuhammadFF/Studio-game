@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { buildFurnitureFacing } from './build-furniture-facing.mjs';
 const specs=JSON.parse(fs.readFileSync('scripts/studio-asset-specs.json','utf8'));
 const R=(x,y,w,h,c,r=0)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="${c}"/>`;
 const E=(x,y,rx,ry,c)=>`<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="${c}"/>`;
@@ -88,5 +89,6 @@ for(const spec of specs){
  const collision=kind==='wall'?{x:0,y:0,width:w,height:h}:/floor|ring|threshold|frame|window|monitor|laptop|books|cup|chair/.test(kind)?null:kind==='lamp'?{x:4,y:h-7,width:w-8,height:5}:kind==='plant'?{x:7,y:h-12,width:w-14,height:10}:kind==='desk'?{x:2,y:12,width:w-4,height:h-15}:/board|easel|sign/.test(kind)?{x:4,y:h-12,width:w-8,height:9}:{x:2,y:Math.max(2,Math.floor(h*.3)),width:w-4,height:Math.floor(h*.7)-3};
  registry[k]={key:existing?.key??k,path:file,category,width:w,height:h,origin:{x:.5,y:.5},collision,depthOffset:collision?collision.y+collision.height-h/2:0,interactionOffset:{x:0,y:h/2+18}};
 }
+buildFurnitureFacing(registry);
 fs.writeFileSync('src/studio/assets/manifest.json',JSON.stringify(registry,null,2)+'\n');
-console.log(`Built ${specs.length} logical assets, ${shared.size} unique SVG textures.`);
+console.log(`Built ${Object.keys(registry).length} logical assets, ${new Set(Object.values(registry).map(a=>a.path)).size} unique SVG textures.`);

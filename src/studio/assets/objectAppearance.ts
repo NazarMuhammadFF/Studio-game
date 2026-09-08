@@ -2,7 +2,7 @@ import type { InteractiveObjectDef } from '../types';
 import { STUDIO_ASSETS } from './registry';
 
 // Appearance only: ownership and interaction behavior remain in layout/product data.
-export function getObjectAsset(objDef: Pick<InteractiveObjectDef, 'id' | 'type' | 'roomType' | 'workstationStatus'>) {
+export function getObjectAsset(objDef: Pick<InteractiveObjectDef, 'id' | 'type' | 'roomType' | 'workstationStatus'> & { rotation?: number }) {
       let textureKey = 'obj_project_board';
       if (objDef.type === 'board') {
         if (objDef.id.includes('code_whiteboard')) textureKey = 'obj_code_whiteboard';
@@ -105,7 +105,15 @@ export function getObjectAsset(objDef: Pick<InteractiveObjectDef, 'id' | 'type' 
         else textureKey = 'obj_lounge_sofa';
       } else if (objDef.type === 'room_layout') {
         textureKey = 'obj_studio_directory';
+      } else if (objDef.type === 'plant' || objDef.id.includes('plant')) {
+        textureKey = 'obj_plant';
+      } else if (objDef.id.includes('shelf')) {
+        textureKey = 'obj_shared_shelf';
+      } else if (objDef.id.includes('cabinet')) {
+        textureKey = 'obj_shared_cabinet';
+      } else if (objDef.id.includes('lamp')) {
+        textureKey = 'obj_floor_lamp';
       }
 
-  return STUDIO_ASSETS[textureKey];
+  return STUDIO_ASSETS[`${textureKey}__facing_${objDef.rotation || 0}`] || STUDIO_ASSETS[textureKey];
 }
